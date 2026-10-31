@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Alur</title>
 <meta name="description" content="Belajar system design lewat animasi dan playground">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#EBEEF2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500&display=swap">
@@ -82,8 +86,9 @@ main{grid-row:2;min-width:0;padding:24px 28px 96px}
 .chip:hover{background:color-mix(in oklab,var(--sunk) 70%,var(--ink) 8%)}
 .chip[data-line]::before{content:"";width:14px;height:5px;border-radius:3px;background:var(--cat)}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--paper)}
-.seg-ctl{display:inline-flex;padding:3px;border-radius:999px;background:var(--sunk);flex:none}
-.seg-ctl button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:none;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.seg-ctl{display:inline-flex;padding:3px;border-radius:999px;background:var(--sunk);flex:none;max-width:100%;overflow-x:auto;scrollbar-width:none}
+#mg-msg:empty{display:none}
+.seg-ctl button{flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:none;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer}
 .seg-ctl button[aria-pressed=true]{background:var(--surface);color:var(--ink)}
 .lv{width:14px;height:14px;flex:none}
 select,input[type=text],textarea{border:1px solid var(--rule);border-radius:var(--r-s);background:var(--surface);padding:7px 10px}
@@ -215,6 +220,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 
 /* Playground */
 .pg-bar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin:18px 0 16px}
+#pg-share-msg{flex-basis:100%;font-size:13.5px}#pg-share-msg:empty{display:none}
 .fld{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
 .fld.rps{flex:1 1 300px;max-width:440px}
 .fld output{min-width:86px;font-weight:800}
@@ -292,6 +298,9 @@ dialog .muted{margin-bottom:16px}
 .dlg-x{position:absolute;top:12px;right:12px}
 .oauth{display:grid;gap:8px}
 .oauth .btn{height:44px}
+.or{display:flex;align-items:center;gap:10px;margin:14px 0 10px;font-size:13px;color:var(--ink-2)}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--rule)}
+.magic{display:flex;gap:8px}.magic input{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--surface);color:var(--ink);font:inherit}
+.magic input:focus-visible{outline:2px solid var(--focus);outline-offset:1px}.magic .btn{height:44px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .note{margin-top:14px;font-size:13.5px;color:var(--ink-2);padding:10px 12px;border-radius:var(--r-s);background:var(--sunk)}
 .rail a[hidden]{display:none}
@@ -367,8 +376,9 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement, view = $('#view');
 
 const store = (() => {
-  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, theme: null};
+  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, theme: null};
   try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
+  s.edits ||= {}; // data lama belum punya catatan hapus/tambah
   return {s, onSave: null, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} this.onSave?.(); }};
 })();
 
@@ -376,6 +386,7 @@ const I = {
   home: '<path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/>',
   nodes: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.2 7.6 10.8 16M15.8 7.6 13.2 16M8.5 6h7"/>',
   bookmark: '<path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/>',
+  link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
   swatch: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><circle cx="17" cy="17" r="3.5"/>',
   play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
   pause: '<path d="M7.5 5h3v14h-3zM13.5 5h3v14h-3z" fill="currentColor"/>',
@@ -587,10 +598,35 @@ function mapSVG() {
 /* ---------- Home ---------- */
 const F = {q: '', cat: 'all', lv: -1};
 let refreshGrid = null;
+// Jarak edit (Damerau, varian OSA: tukar dua huruf bersebelahan dihitung 1) dengan batas: berhenti begitu melewati max.
+function editDist(a, b, max) {
+  let pp = [], prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], pp[j - 2] + 1);
+    }
+    if (Math.min(...cur) > max) return max + 1;
+    pp = prev; prev = cur;
+  }
+  return prev[b.length];
+}
+const words = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(Boolean);
+// Setiap kata di kueri harus cocok dengan awal salah satu kata, boleh salah ketik 1 huruf (2 untuk kata 7+ huruf).
+function fuzzy(q, text) {
+  const hay = words(text);
+  return words(q).every(t => {
+    const tol = t.length >= 7 ? 2 : t.length >= 4 ? 1 : 0;
+    return hay.some(w => w.includes(t) || (tol && editDist(t, w.slice(0, t.length), tol) <= tol) || (tol && editDist(t, w, tol) <= tol));
+  });
+}
+console.assert(fuzzy('cahce', 'Cache di depan database') && fuzzy('shardng', 'Sharding') && fuzzy('load balan', 'Load balancer')
+  && fuzzy('load balncer', 'Load balancer') && !fuzzy('kafka', 'Cache di depan database') && !fuzzy('db', 'Load balancer'), 'search: toleran salah ketik');
 function matches(l, saved) {
-  const q = F.q.trim().toLowerCase();
+  const q = F.q.trim();
   return (!saved || store.s.saved.includes(l.id)) && (F.cat === 'all' || l.cat === F.cat) && (F.lv < 0 || l.lv === F.lv)
-    && (!q || `${l.t} ${l.d} ${CAT[l.cat].name} ${l.p.join(' ')}`.toLowerCase().includes(q));
+    && (!q || fuzzy(q, `${l.t} ${l.d} ${CAT[l.cat].name} ${l.p.join(' ')}`));
 }
 function viewHome(saved) {
   const done = L.filter(l => prog(l.id) >= 1).length;
@@ -825,7 +861,7 @@ function viewLesson(id) {
     }
     const tl = e.target.closest('[data-t]'); if (tl) player.seekTime(+tl.dataset.t);
     const del = e.target.closest('[data-del]');
-    if (del) { store.s.notes[l.id] = notes().filter(n => n.id !== del.dataset.del); store.save(); renderNotes(); }
+    if (del) { store.s.notes[l.id] = notes().filter(n => n.id !== del.dataset.del); mark(`n:${l.id}:${del.dataset.del}`, false); store.save(); renderNotes(); }
   };
   renderNotes();
   return () => player.destroy();
@@ -843,6 +879,7 @@ const PG = {
 };
 const TERMINAL = new Set(['server', 'db']);
 const W = 900, H = 520, NW = 124, NH = 56;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 // shortcut: model aliran steady-state (bukan simulasi event diskret); cukup untuk intuisi, ganti dengan sim per-request untuk materi p99.
 function simulate(g, rps) {
@@ -920,18 +957,46 @@ const CHALLENGES = [
   {name: 'Flash sale 25.000 rps', d: 'Terima semua pesanan tanpa menolak satu pun. Pemrosesan boleh tertunda.', rps: 25000, err: .001, lat: 60, cost: Infinity},
 ];
 
-function viewPlayground(presetId) {
-  const pre = PRESETS[presetId] ? presetId : 'lb';
-  let g = PRESETS[pre].build(), rps = 3000, chal = 0, running = !reduced, sel = null, connecting = false, from = null;
+// Desain playground dikodekan ke URL (base64url JSON) agar bisa dibagikan tanpa server.
+function encodeDesign(g, rps) {
+  const ix = new Map(g.nodes.map((n, i) => [n.id, i]));
+  const json = JSON.stringify({r: rps, n: g.nodes.map(n => [n.type, Math.round(n.x), Math.round(n.y), n.cap, n.hit ?? null]), e: g.edges.map(([a, b]) => [ix.get(a), ix.get(b)])});
+  return btoa(String.fromCharCode(...new TextEncoder().encode(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+// Tautan datang dari luar: tipe, posisi, kapasitas, dan trafik dibatasi ke rentang yang sama dengan kontrol UI. Sambungan dicek saat dipasang.
+function decodeDesign(code) {
+  try {
+    const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))));
+    if (!Array.isArray(d.n) || !Array.isArray(d.e) || !d.n.length || d.n.length > 40 || d.e.length > 200) return null;
+    const g = {nodes: [], edges: []};
+    for (const v of d.n) {
+      if (!Array.isArray(v)) return null;
+      const [type, x, y, cap, hit] = v;
+      if (!Object.hasOwn(PG, type) || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+      const n = mkNode(type, clamp(x, NW / 2, W - NW / 2), clamp(y, NH / 2, H - NH / 2), g);
+      if (isFinite(n.cap) && Number.isFinite(cap)) n.cap = clamp(cap, PG[type].cap * .5, PG[type].cap * 4);
+      if (n.hit != null && Number.isFinite(hit)) n.hit = clamp(hit, 0, .99);
+      g.nodes.push(n);
+    }
+    const links = d.e.filter(e => Array.isArray(e) && g.nodes[e[0]] && g.nodes[e[1]]).map(([a, b]) => [g.nodes[a].id, g.nodes[b].id]);
+    return {g, links, rps: clamp(Math.round(+d.r / 100) * 100 || 3000, 100, 30000)};
+  } catch { return null; }
+}
+
+function viewPlayground(presetId, shared) {
+  const pre = PRESETS[presetId] ? presetId : 'lb', got = shared ? decodeDesign(shared) : null;
+  let g = got ? got.g : PRESETS[pre].build(), rps = got ? got.rps : 3000, chal = 0, running = !reduced, sel = null, connecting = false, from = null;
   let sim, packets = [], sparks = [], acc = [], raf = 0, last = 0, visible = true, drag = null, pointer = null, pal, scale = 1, dpr = 1;
   const types = ['client', 'lb', 'server', 'cache', 'db', 'queue', 'cdn'];
   view.innerHTML = `<div class="pg">
     <header class="page-head"><h1>Playground</h1><p>Rakit arsitektur, alirkan trafik, lalu lihat komponen mana yang pertama kewalahan. Angka di sini adalah model sederhana untuk membangun intuisi, bukan benchmark.</p></header>
     <div class="pg-bar">
-      <label class="fld">Mulai dari <select id="pg-preset">${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}"${k === pre ? ' selected' : ''}>${p.name}</option>`).join('')}</select></label>
+      <label class="fld">Mulai dari <select id="pg-preset">${got ? '<option value="" selected disabled>Desain dari tautan</option>' : ''}${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}"${k === pre && !got ? ' selected' : ''}>${p.name}</option>`).join('')}</select></label>
       <label class="fld rps">Trafik <input id="pg-rps" type="range" min="100" max="30000" step="100" value="${rps}"><output id="pg-rps-out" class="num"></output></label>
       <button class="btn" id="pg-run" aria-pressed="${running}"></button>
       <button class="btn" id="pg-connect" aria-pressed="false">${ico(I.nodes)}Sambungkan</button>
+      <button class="btn" id="pg-share">${ico(I.link)}Bagikan desain</button>
+      <p class="muted" id="pg-share-msg" aria-live="polite">${shared && !got ? 'Tautan desain rusak atau tidak lengkap, jadi yang dibuka adalah contoh load balancer.' : ''}</p>
     </div>
     <div class="pg-body">
       <div class="palette" role="group" aria-label="Tambah komponen"><p class="lbl-s">Tambah komponen</p>${types.map(t => `<button class="pal" data-add="${t}"><svg viewBox="0 0 84 34" aria-hidden="true"><g class="node" style="--tc:var(${TYPES[t].v})">${shapeSVG(t, 42, 17, 76, 28)}</g></svg><span><b>${TYPES[t].name}</b><small class="num">${isFinite(PG[t].cap) ? `${fmt(PG[t].cap)} rps, $${PG[t].cost}/bln` : 'Sumber trafik'}</small></span></button>`).join('')}</div>
@@ -955,6 +1020,7 @@ function viewPlayground(presetId) {
     return false;
   }
   const canLink = (a, b) => a !== b && b.type !== 'client' && !g.edges.some(([p, q]) => p === a.id && q === b.id) && !reach(b.id, a.id);
+  got?.links.forEach(([a, b]) => { if (canLink(byId(a), byId(b))) g.edges.push([a, b]); });
 
   function recompute() {
     sim = simulate(g, rps);
@@ -1086,7 +1152,6 @@ function viewPlayground(presetId) {
   }
   const toWorld = e => { const r = cv.getBoundingClientRect(); return {x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H}; };
   const hit = p => { for (let i = g.nodes.length - 1; i >= 0; i--) { const n = g.nodes[i]; if (Math.abs(p.x - n.x) <= NW / 2 && Math.abs(p.y - n.y) <= NH / 2) return n; } return null; };
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   cv.onpointerdown = e => {
     const p = toWorld(e), n = hit(p);
@@ -1122,6 +1187,13 @@ function viewPlayground(presetId) {
     if (un) { g.edges = g.edges.filter(([a, b]) => !(a === sel.id && b === un.dataset.unlink)); graphChanged(); return; }
     if (e.target.closest('#pg-del') && sel) { g.edges = g.edges.filter(([a, b]) => a !== sel.id && b !== sel.id); g.nodes = g.nodes.filter(n => n !== sel); sel = null; graphChanged(); return; }
     if (e.target.closest('#pg-run')) { running = !running; setRun(); kick(); return; }
+    if (e.target.closest('#pg-share')) {
+      const url = `${location.origin}${location.pathname}#/playground/share/${encodeDesign(g, rps)}`, msg = $('#pg-share-msg');
+      history.replaceState(null, '', url);
+      navigator.clipboard.writeText(url).then(() => { msg.textContent = 'Tautan disalin. Siapa pun yang membukanya melihat desain dan trafik ini.'; },
+        () => { msg.textContent = 'Salin tautan dari address bar untuk membagikan desain ini.'; });
+      return;
+    }
     if (e.target.closest('#pg-connect')) { connecting = !connecting; from = null; $('#pg-connect').setAttribute('aria-pressed', connecting); setHint(); kick(); }
   };
   view.oninput = e => {
@@ -1297,25 +1369,33 @@ async function setUser(u) {
 }
 
 /* ---------- Sinkron progres ---------- */
-const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal'];
+const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits'];
+// Jejak kapan simpanan ('s:id') atau catatan ('n:pelajaran:id') terakhir ditambah/dihapus, agar hapusan ikut tersinkron.
+const mark = (k, on) => { store.s.edits[k] = {t: Date.now(), on}; };
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 // Data dari server dibersihkan per field; nilai yang bentuknya salah dibuang, bukan merusak state lokal.
 function cleanState(d) {
-  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}};
+  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}};
   if (!isObj(d)) return o;
   if (isObj(d.progress)) for (const [k, v] of Object.entries(d.progress)) if (typeof v === 'number' && v >= 0 && v <= 1) o.progress[k] = v;
   if (Array.isArray(d.saved)) o.saved = d.saved.filter(x => typeof x === 'string');
   if (isObj(d.notes)) for (const [k, list] of Object.entries(d.notes)) if (Array.isArray(list)) o.notes[k] = list.filter(n => isObj(n) && typeof n.id === 'string' && typeof n.t === 'number' && typeof n.text === 'string');
   for (const key of ['quiz', 'chal']) if (isObj(d[key])) for (const [k, v] of Object.entries(d[key])) if (typeof v === 'boolean') o[key][k] = v;
+  if (isObj(d.edits)) for (const [k, v] of Object.entries(d.edits)) if (isObj(v) && typeof v.t === 'number' && typeof v.on === 'boolean') o.edits[k] = {t: v.t, on: v.on};
   return o;
 }
 // Gabungan dua perangkat: progres tertinggi, simpanan dan catatan digabung, kuis/tantangan benar jika benar di salah satunya.
-// shortcut: penghapusan (catatan, simpanan) di perangkat lain bisa muncul lagi saat login; pakai tombstone jika ini mengganggu.
+// Simpanan/catatan yang perubahan terakhirnya berupa hapus dibuang dari hasil gabungan.
+// shortcut: memakai jam perangkat dan jejak edits tidak pernah dipangkas; cukup selama jumlahnya ratusan, bukan jutaan.
 function mergeState(a, b) {
-  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}};
+  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}};
   for (const [k, v] of Object.entries(b.progress)) m.progress[k] = Math.max(m.progress[k] || 0, v);
   for (const [k, list] of Object.entries(b.notes)) { const ids = new Set((m.notes[k] || []).map(n => n.id)); m.notes[k] = [...(m.notes[k] || []), ...list.filter(n => !ids.has(n.id))]; }
   for (const key of ['quiz', 'chal']) for (const [k, v] of Object.entries(b[key])) m[key][k] = m[key][k] || v;
+  for (const [k, v] of Object.entries(b.edits)) if (!m.edits[k] || v.t > m.edits[k].t) m.edits[k] = v;
+  const gone = k => m.edits[k]?.on === false;
+  m.saved = m.saved.filter(id => !gone('s:' + id));
+  for (const k in m.notes) m.notes[k] = m.notes[k].filter(n => !gone(`n:${k}:${n.id}`));
   return m;
 }
 (function syncSelfTest() {
@@ -1325,6 +1405,11 @@ function mergeState(a, b) {
   console.assert(m.progress.f1 === 1 && m.progress.f2 === 1 && !('n1' in m.progress), 'sync: progres ambil tertinggi, nilai rusak dibuang');
   console.assert(m.saved.join() === 'f1,n1' && m.notes.f1.length === 2 && m.quiz.f1 === true && m.chal[0] === true, 'sync: simpanan, catatan, kuis, tantangan digabung');
   console.assert(cleanState('x').saved.length === 0, 'sync: data bukan objek diabaikan');
+  // Perangkat B menghapus simpanan f1 dan catatan x; perangkat A lalu menyimpan ulang f2 setelah B menghapusnya.
+  const A = cleanState({saved: ['f1', 'f2'], notes: {f1: [{id: 'x', t: 0, text: 'a'}]}, edits: {'s:f2': {t: 30, on: true}}});
+  const B = cleanState({saved: [], notes: {f1: []}, edits: {'s:f1': {t: 10, on: false}, 's:f2': {t: 20, on: false}, 'n:f1:x': {t: 10, on: false}, bad: {t: 'x'}}});
+  const M = mergeState(A, B);
+  console.assert(M.saved.join() === 'f2' && M.notes.f1.length === 0 && !('bad' in M.edits), 'sync: hapusan tersinkron, simpan ulang yang lebih baru menang');
 })();
 
 const sync = {
@@ -1361,10 +1446,22 @@ function renderAccount() {
     ? `<h2>${esc(name)}</h2><p class="muted">${esc(u.email || '')}${auth.admin ? '. Kamu admin konten.' : ''}</p><p class="note" id="sync-st" aria-live="polite">${esc(sync.status || 'Progres, simpanan, catatan, dan hasil kuis disinkronkan ke akunmu.')}</p><div class="row">${auth.admin ? '<a class="btn" href="#/admin" data-close>Kelola konten</a>' : ''}<button class="btn pri" data-logout>Keluar</button></div>`
     : `<h2>Masuk ke Alur</h2><p class="muted">Masuk untuk menyimpan progres, simpanan, dan catatan di akunmu, lalu lanjutkan belajar dari perangkat mana pun.</p>
        <div class="oauth"><button class="btn" data-login="google"${SB_ON ? '' : ' disabled'}>${ico(I.google)}Lanjutkan dengan Google</button><button class="btn" data-login="github"${SB_ON ? '' : ' disabled'}>${ico(I.github)}Lanjutkan dengan GitHub</button></div>
+       <p class="or">atau lewat email</p>
+       <form class="magic" data-magic><label class="skip" for="mg-email">Alamat email</label><input id="mg-email" type="email" name="email" required autocomplete="email" placeholder="nama@email.com"${SB_ON ? '' : ' disabled'}><button class="btn pri"${SB_ON ? '' : ' disabled'}>Kirim tautan</button></form>
+       <p class="qres" id="mg-msg" aria-live="polite"></p>
        ${SB_ON ? '' : '<p class="note">Login belum aktif di situs ini. Isi URL dan anon key Supabase di config.js untuk menyalakannya.</p>'}`;
   $$('.rail [data-r=admin]').forEach(a => a.hidden = !auth.admin);
 }
 $('#acct').onclick = () => $('#acct-dlg').showModal();
+$('#acct-dlg').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, msg = $('#mg-msg'), btn = $('button', f), email = f.elements.email.value.trim();
+  btn.disabled = true; msg.className = 'qres'; msg.textContent = 'Mengirim tautan...';
+  const {error} = await auth.sb.auth.signInWithOtp({email, options: {emailRedirectTo: location.origin + location.pathname}});
+  btn.disabled = false;
+  msg.className = 'qres ' + (error ? 'no' : 'ok');
+  msg.textContent = error ? `Gagal mengirim tautan: ${error.message}` : `Tautan masuk sudah dikirim ke ${email}. Buka emailnya di perangkat ini untuk masuk.`;
+};
 $('#acct-dlg').onclick = async e => {
   const d = $('#acct-dlg');
   if (e.target === d || e.target.closest('[data-close]')) return d.close();
@@ -1512,6 +1609,7 @@ function route() {
   const h = location.hash || '#/';
   let m, section = 'home';
   if ((m = h.match(/^#\/l\/(\w+)$/))) cleanup = viewLesson(m[1]);
+  else if ((m = h.match(/^#\/playground\/share\/([\w-]+)$/))) { cleanup = viewPlayground(null, m[1]); section = 'playground'; }
   else if ((m = h.match(/^#\/playground(?:\/(\w+))?$/))) { cleanup = viewPlayground(m[1]); section = 'playground'; }
   else if (h === '#/design') { cleanup = viewDesign(); section = 'design'; }
   else if ((m = h.match(/^#\/admin(?:\/([ld])\/(\w+))?$/))) { cleanup = viewAdmin(m[1], m[2]); section = 'admin'; }
@@ -1535,7 +1633,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-open-acct]')) return $('#acct-dlg').showModal();
   const b = e.target.closest('[data-save]'); if (!b) return;
   const id = b.dataset.save, s = store.s.saved, i = s.indexOf(id);
-  i < 0 ? s.push(id) : s.splice(i, 1); store.save();
+  i < 0 ? s.push(id) : s.splice(i, 1); mark('s:' + id, i < 0); store.save();
   $$(`[data-save="${id}"]`).forEach(x => { x.setAttribute('aria-pressed', i < 0); const t = $('.lbl', x); if (t) t.textContent = i < 0 ? 'Disimpan' : 'Simpan'; });
   if (location.hash === '#/saved') refreshGrid?.();
 });
@@ -1548,6 +1646,7 @@ $('#theme').onclick = () => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => dispatchEvent(new Event('themechange')));
 applyTheme(store.s.theme);
 renderAccount();
+if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker:', err));
 (SB_ON ? initAuth().catch(err => console.error('Supabase:', err)) : Promise.resolve()).then(route);
 </script>
 </body>

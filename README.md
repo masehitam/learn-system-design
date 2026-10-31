@@ -30,6 +30,7 @@ Untuk mengaktifkan login dan admin sungguhan (paket gratis Supabase cukup):
    - Google: buat OAuth client di Google Cloud Console.
    - GitHub: buat OAuth App di GitHub Settings > Developer settings.
    - Untuk keduanya, isi callback URL dengan yang ditampilkan Supabase, yaitu `https://<proyek>.supabase.co/auth/v1/callback`.
+   - Login lewat tautan email memakai provider Email, yang sudah aktif secara bawaan. Pengirim email bawaan Supabase hanya mengirim beberapa email per jam, jadi pasang SMTP sendiri (Authentication > Emails > SMTP Settings) sebelum dipakai banyak orang.
 4. Buka Authentication > URL Configuration, lalu tambahkan alamat situsmu ke Redirect URLs. Contohnya `https://<user>.github.io/<repo>/` dan `http://localhost:4173/`.
 5. Isi `supabaseUrl` dan `supabaseAnonKey` di [prototype/config.js](prototype/config.js). Nilainya ada di Project Settings > API. Anon key memang dirancang untuk publik; hak tulis dijaga oleh Row Level Security.
 6. Login sekali lewat situs, lalu jadikan akunmu admin lewat SQL Editor:
@@ -38,6 +39,10 @@ Untuk mengaktifkan login dan admin sungguhan (paket gratis Supabase cukup):
    insert into public.admins (user_id) select id from auth.users where email = 'email-kamu@contoh.com';
    ```
 
-Setelah login, progres, simpanan, catatan, hasil kuis, dan tantangan disinkronkan ke akun. Saat login pertama, data di perangkat digabung dengan data di akun: progres diambil yang tertinggi, sisanya digabung.
+Setelah login, progres, simpanan, catatan, hasil kuis, dan tantangan disinkronkan ke akun. Saat login pertama, data di perangkat digabung dengan data di akun: progres diambil yang tertinggi, sisanya digabung. Simpanan atau catatan yang dihapus di satu perangkat ikut terhapus di perangkat lain, karena aplikasi mencatat waktu setiap tambah dan hapus lalu memakai perubahan yang paling akhir.
 
 Simpan pertama dari menu Admin otomatis menyalin konten bawaan ke database. Setelah itu, database menjadi sumber konten untuk semua pengunjung.
+
+## Pasang di HP dan mode offline
+
+Situs ini bisa dipasang sebagai aplikasi (PWA) dari menu browser, misalnya "Tambahkan ke layar utama". [prototype/sw.js](prototype/sw.js) menyimpan salinan halaman dan font setiap kali dibuka. Jadi pelajaran dan playground tetap jalan tanpa internet, setelah situs pernah dibuka sekali. Saat online, versi terbaru selalu diambil lebih dulu.

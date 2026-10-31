@@ -69,19 +69,19 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Fitur | MVP (v1.0) | v1.1 | v2.0 |
 |---|---|---|---|
 | Katalog, thumbnail hidup, kategori, kesulitan | ✓ | | |
-| Pencarian | ✓ (lokal, judul + isi) | Typo-tolerant, sinonim | Pencarian di dalam langkah animasi |
+| Pencarian | ✓ (lokal, judul + isi) | Typo-tolerant (sudah di prototype), sinonim | Pencarian di dalam langkah animasi |
 | Peta belajar (jalur metro) | ✓ | Jalur kustom ("Persiapan interview 2 minggu") | |
 | Pemutar animasi per langkah | ✓ | Narasi audio TTS opsional | Mode presentasi layar penuh |
 | Penjelasan, poin kunci, transkrip langkah | ✓ | | |
 | Kuis per pelajaran | ✓ (1 soal) | 3–5 soal, pengulangan berjarak | |
 | Catatan pribadi bertimestamp | ✓ (lokal) | Sinkron akun | Ekspor Markdown |
 | Simpan, progres, riwayat | ✓ (lokal) | Sinkron akun | |
-| Akun dan login | | ✓ (Google, GitHub; magic link menyusul) — sudah di prototype | |
-| Playground: kanvas + simulasi aliran | ✓ | Simpan dan bagikan desain lewat tautan | |
+| Akun dan login | | ✓ (Google, GitHub, magic link email) — sudah di prototype | |
+| Playground: kanvas + simulasi aliran | ✓ | Simpan dan bagikan desain lewat tautan (bagikan sudah di prototype) | |
 | Tantangan playground | ✓ (3) | 15 tantangan, papan skor pribadi | |
 | Sandbox teknologi (Redis, SQL, Kafka) | | ✓ Redis dan SQL di browser | Kafka, consistent hashing, CAP lab |
 | Editor konten internal | Format JSON + validasi CI | Editor visual | Kontributor komunitas |
-| PWA + offline | | ✓ | |
+| PWA + offline | | ✓ (sudah di prototype) | |
 
 ## 7. Kebutuhan fungsional
 
@@ -171,7 +171,7 @@ Format: user story, lalu kriteria penerimaan (KP) yang bisa diuji.
 - KP umum: tidak ada server per pengguna, semua berjalan di tab browser; lab dimuat hanya saat dibuka (lazy load).
 
 ### 7.4 Akun dan progres (v1.1)
-Status prototype: login Google/GitHub dan sinkron progres sudah berjalan lewat Supabase (tabel `user_state`, satu dokumen per user, dijaga RLS). Penghapusan belum memakai tombstone, jadi catatan atau simpanan yang dihapus di perangkat lain bisa muncul lagi saat login.
+Status prototype: login Google/GitHub/magic link dan sinkron progres sudah berjalan lewat Supabase (tabel `user_state`, satu dokumen per user, dijaga RLS). Tambah dan hapus simpanan atau catatan dicatat dengan waktu (`edits`), dan perubahan terakhir yang menang saat digabung. Waktunya memakai jam perangkat, jadi jam yang sangat meleset bisa membuat urutan salah.
 - Login dengan magic link email atau Google. Progres lokal digabung ke akun saat login pertama (ambil nilai progres tertinggi per pelajaran).
 - Data yang disimpan: progres, simpanan, catatan, hasil kuis, tantangan. Tidak ada data sensitif selain email.
 
