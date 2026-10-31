@@ -18,14 +18,14 @@ Setiap push ke `main` otomatis di-deploy ke GitHub Pages oleh [.github/workflows
 
 Untuk Cloudflare Pages: buat proyek baru, sambungkan repo ini, kosongkan build command, lalu isi output directory dengan `prototype`.
 
-## Login Google/GitHub dan admin konten
+## Login, sinkron progres, dan admin konten
 
 Tanpa konfigurasi, situs berjalan dalam mode demo. Tombol login nonaktif, dan menu Admin menyimpan perubahan hanya di browser.
 
 Untuk mengaktifkan login dan admin sungguhan (paket gratis Supabase cukup):
 
 1. Buat proyek di [supabase.com](https://supabase.com).
-2. Buka SQL Editor, lalu jalankan [supabase/schema.sql](supabase/schema.sql).
+2. Buka SQL Editor, lalu jalankan [supabase/schema.sql](supabase/schema.sql). File ini aman dijalankan ulang setiap kali diperbarui.
 3. Buka Authentication > Providers, lalu aktifkan Google dan GitHub.
    - Google: buat OAuth client di Google Cloud Console.
    - GitHub: buat OAuth App di GitHub Settings > Developer settings.
@@ -37,5 +37,7 @@ Untuk mengaktifkan login dan admin sungguhan (paket gratis Supabase cukup):
    ```sql
    insert into public.admins (user_id) select id from auth.users where email = 'email-kamu@contoh.com';
    ```
+
+Setelah login, progres, simpanan, catatan, hasil kuis, dan tantangan disinkronkan ke akun. Saat login pertama, data di perangkat digabung dengan data di akun: progres diambil yang tertinggi, sisanya digabung.
 
 Simpan pertama dari menu Admin otomatis menyalin konten bawaan ke database. Setelah itu, database menjadi sumber konten untuk semua pengunjung.

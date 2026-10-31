@@ -369,7 +369,7 @@ const root = document.documentElement, view = $('#view');
 const store = (() => {
   const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, theme: null};
   try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
-  return {s, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} }};
+  return {s, onSave: null, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} this.onSave?.(); }};
 })();
 
 const I = {
@@ -1288,10 +1288,69 @@ async function initAuth() {
   sb.auth.onAuthStateChange((_e, s) => { const u = s?.user || null; if (u?.id !== auth.user?.id) setTimeout(() => setUser(u).then(route)); });
 }
 async function setUser(u) {
-  auth.user = u; auth.admin = false;
-  if (u) { const {data} = await auth.sb.from('admins').select('user_id').eq('user_id', u.id).maybeSingle(); auth.admin = !!data; }
+  auth.user = u; auth.admin = false; sync.status = '';
+  if (u) {
+    const {data} = await auth.sb.from('admins').select('user_id').eq('user_id', u.id).maybeSingle(); auth.admin = !!data;
+    await sync.pull();
+  }
   renderAccount();
 }
+
+/* ---------- Sinkron progres ---------- */
+const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal'];
+const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+// Data dari server dibersihkan per field; nilai yang bentuknya salah dibuang, bukan merusak state lokal.
+function cleanState(d) {
+  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}};
+  if (!isObj(d)) return o;
+  if (isObj(d.progress)) for (const [k, v] of Object.entries(d.progress)) if (typeof v === 'number' && v >= 0 && v <= 1) o.progress[k] = v;
+  if (Array.isArray(d.saved)) o.saved = d.saved.filter(x => typeof x === 'string');
+  if (isObj(d.notes)) for (const [k, list] of Object.entries(d.notes)) if (Array.isArray(list)) o.notes[k] = list.filter(n => isObj(n) && typeof n.id === 'string' && typeof n.t === 'number' && typeof n.text === 'string');
+  for (const key of ['quiz', 'chal']) if (isObj(d[key])) for (const [k, v] of Object.entries(d[key])) if (typeof v === 'boolean') o[key][k] = v;
+  return o;
+}
+// Gabungan dua perangkat: progres tertinggi, simpanan dan catatan digabung, kuis/tantangan benar jika benar di salah satunya.
+// shortcut: penghapusan (catatan, simpanan) di perangkat lain bisa muncul lagi saat login; pakai tombstone jika ini mengganggu.
+function mergeState(a, b) {
+  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}};
+  for (const [k, v] of Object.entries(b.progress)) m.progress[k] = Math.max(m.progress[k] || 0, v);
+  for (const [k, list] of Object.entries(b.notes)) { const ids = new Set((m.notes[k] || []).map(n => n.id)); m.notes[k] = [...(m.notes[k] || []), ...list.filter(n => !ids.has(n.id))]; }
+  for (const key of ['quiz', 'chal']) for (const [k, v] of Object.entries(b[key])) m[key][k] = m[key][k] || v;
+  return m;
+}
+(function syncSelfTest() {
+  const a = cleanState({progress: {f1: .5, f2: 1}, saved: ['f1'], notes: {f1: [{id: 'x', t: 0, text: 'a'}]}, quiz: {f1: false}, chal: {}});
+  const b = cleanState({progress: {f1: 1, f2: .25, n1: 'rusak'}, saved: ['n1', 7], notes: {f1: [{id: 'x', t: 0, text: 'a'}, {id: 'y', t: 6000, text: 'b'}]}, quiz: {f1: true}, chal: {0: true}});
+  const m = mergeState(a, b);
+  console.assert(m.progress.f1 === 1 && m.progress.f2 === 1 && !('n1' in m.progress), 'sync: progres ambil tertinggi, nilai rusak dibuang');
+  console.assert(m.saved.join() === 'f1,n1' && m.notes.f1.length === 2 && m.quiz.f1 === true && m.chal[0] === true, 'sync: simpanan, catatan, kuis, tantangan digabung');
+  console.assert(cleanState('x').saved.length === 0, 'sync: data bukan objek diabaikan');
+})();
+
+const sync = {
+  status: '', timer: 0,
+  setStatus(t) { this.status = t; const el = $('#sync-st'); if (el) el.textContent = t; },
+  async pull() {
+    const {data, error} = await auth.sb.from('user_state').select('data').eq('user_id', auth.user.id).maybeSingle();
+    if (error) return this.setStatus('Progres belum tersinkron: ' + error.message);
+    Object.assign(store.s, mergeState(cleanState(store.s), cleanState(data?.data)));
+    store.save(); // menyimpan lokal dan mengirim hasil gabungan ke server
+  },
+  push() {
+    if (!auth.user) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), 1200);
+  },
+  async flush() {
+    clearTimeout(this.timer); this.timer = 0;
+    if (!auth.user) return;
+    const data = Object.fromEntries(SYNC_KEYS.map(k => [k, store.s[k]]));
+    const {error} = await auth.sb.from('user_state').upsert({user_id: auth.user.id, data, updated_at: new Date().toISOString()});
+    this.setStatus(error ? 'Gagal menyinkronkan: ' + error.message + '. Data tetap aman di perangkat ini.' : 'Progres tersinkron dengan akunmu.');
+  },
+};
+store.onSave = () => sync.push();
+addEventListener('visibilitychange', () => { if (document.hidden && sync.timer) sync.flush(); });
 function renderAccount() {
   const b = $('#acct'), u = auth.user, m = u?.user_metadata || {};
   const name = m.full_name || m.name || m.user_name || u?.email || '';
@@ -1299,8 +1358,8 @@ function renderAccount() {
   b.className = u ? 'ib acct' : 'btn sm';
   b.setAttribute('aria-label', u ? `Akun ${name}` : 'Masuk');
   $('#acct-body').innerHTML = u
-    ? `<h2>${esc(name)}</h2><p class="muted">${esc(u.email || '')}${auth.admin ? '. Kamu admin konten.' : ''}</p><div class="row">${auth.admin ? '<a class="btn" href="#/admin" data-close>Kelola konten</a>' : ''}<button class="btn pri" data-logout>Keluar</button></div>`
-    : `<h2>Masuk ke Alur</h2><p class="muted">Masuk untuk mengelola konten jika kamu admin. Progres belajar tetap tersimpan di perangkat ini.</p>
+    ? `<h2>${esc(name)}</h2><p class="muted">${esc(u.email || '')}${auth.admin ? '. Kamu admin konten.' : ''}</p><p class="note" id="sync-st" aria-live="polite">${esc(sync.status || 'Progres, simpanan, catatan, dan hasil kuis disinkronkan ke akunmu.')}</p><div class="row">${auth.admin ? '<a class="btn" href="#/admin" data-close>Kelola konten</a>' : ''}<button class="btn pri" data-logout>Keluar</button></div>`
+    : `<h2>Masuk ke Alur</h2><p class="muted">Masuk untuk menyimpan progres, simpanan, dan catatan di akunmu, lalu lanjutkan belajar dari perangkat mana pun.</p>
        <div class="oauth"><button class="btn" data-login="google"${SB_ON ? '' : ' disabled'}>${ico(I.google)}Lanjutkan dengan Google</button><button class="btn" data-login="github"${SB_ON ? '' : ' disabled'}>${ico(I.github)}Lanjutkan dengan GitHub</button></div>
        ${SB_ON ? '' : '<p class="note">Login belum aktif di situs ini. Isi URL dan anon key Supabase di config.js untuk menyalakannya.</p>'}`;
   $$('.rail [data-r=admin]').forEach(a => a.hidden = !auth.admin);
@@ -1314,7 +1373,7 @@ $('#acct-dlg').onclick = async e => {
     const {error} = await auth.sb.auth.signInWithOAuth({provider: p, options: {redirectTo: location.origin + location.pathname}});
     if (error) $('#acct-body').insertAdjacentHTML('beforeend', `<p class="qres no">Gagal masuk: ${esc(error.message)}</p>`);
   }
-  if (e.target.closest('[data-logout]')) { await auth.sb.auth.signOut(); d.close(); }
+  if (e.target.closest('[data-logout]')) { if (sync.timer) await sync.flush(); await auth.sb.auth.signOut(); d.close(); }
 };
 
 /* ---------- Admin ---------- */

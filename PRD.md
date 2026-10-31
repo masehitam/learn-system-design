@@ -76,7 +76,7 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Kuis per pelajaran | ✓ (1 soal) | 3–5 soal, pengulangan berjarak | |
 | Catatan pribadi bertimestamp | ✓ (lokal) | Sinkron akun | Ekspor Markdown |
 | Simpan, progres, riwayat | ✓ (lokal) | Sinkron akun | |
-| Akun dan login | | ✓ (email magic link, Google) | |
+| Akun dan login | | ✓ (Google, GitHub; magic link menyusul) — sudah di prototype | |
 | Playground: kanvas + simulasi aliran | ✓ | Simpan dan bagikan desain lewat tautan | |
 | Tantangan playground | ✓ (3) | 15 tantangan, papan skor pribadi | |
 | Sandbox teknologi (Redis, SQL, Kafka) | | ✓ Redis dan SQL di browser | Kafka, consistent hashing, CAP lab |
@@ -171,6 +171,7 @@ Format: user story, lalu kriteria penerimaan (KP) yang bisa diuji.
 - KP umum: tidak ada server per pengguna, semua berjalan di tab browser; lab dimuat hanya saat dibuka (lazy load).
 
 ### 7.4 Akun dan progres (v1.1)
+Status prototype: login Google/GitHub dan sinkron progres sudah berjalan lewat Supabase (tabel `user_state`, satu dokumen per user, dijaga RLS). Penghapusan belum memakai tombstone, jadi catatan atau simpanan yang dihapus di perangkat lain bisa muncul lagi saat login.
 - Login dengan magic link email atau Google. Progres lokal digabung ke akun saat login pertama (ambil nilai progres tertinggi per pelajaran).
 - Data yang disimpan: progres, simpanan, catatan, hasil kuis, tantangan. Tidak ada data sensitif selain email.
 
