@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alur</title>
+<meta name="description" content="Belajar system design lewat animasi dan playground">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500&display=swap">
+<style>
+:root{
+  --paper:#EBEEF2; --surface:#FFFFFF; --sunk:#DFE4EA; --ink:#17202B; --ink-2:#566274; --rule:#D2D8E0; --edge:#B4BDC9; --dot:#CDD3DB;
+  --focus:#2B6CE0;
+  --c-fondasi:#2B6CE0; --c-jaringan:#8350E8; --c-storage:#0C9682; --c-cache:#D48C06; --c-msg:#DB4157; --c-scale:#3A963A; --c-case:#5B6472;
+  --ok:#2E9E5B; --warn:#D48C06; --bad:#D63A4E;
+  --r-s:6px; --r-m:10px; --r-l:16px;
+  --t-fast:120ms; --t-med:220ms; --ease:cubic-bezier(.2,.7,.2,1);
+  --font:"Overpass",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Overpass Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --paper:#0E131A; --surface:#161D26; --sunk:#1F2833; --ink:#E6EBF1; --ink-2:#98A4B5; --rule:#28323F; --edge:#3D4959; --dot:#242D39; --focus:#6B9BFF;
+  --c-fondasi:#5B8EF5; --c-jaringan:#A07CF7; --c-storage:#2BB7A1; --c-cache:#F0AA2A; --c-msg:#F06478; --c-scale:#5CB85C; --c-case:#8D97A6;
+  --ok:#4CC27E; --warn:#F0AA2A; --bad:#F2596B; color-scheme:dark;
+}}
+:root[data-theme=dark]{
+  --paper:#0E131A; --surface:#161D26; --sunk:#1F2833; --ink:#E6EBF1; --ink-2:#98A4B5; --rule:#28323F; --edge:#3D4959; --dot:#242D39; --focus:#6B9BFF;
+  --c-fondasi:#5B8EF5; --c-jaringan:#A07CF7; --c-storage:#2BB7A1; --c-cache:#F0AA2A; --c-msg:#F06478; --c-scale:#5CB85C; --c-case:#8D97A6;
+  --ok:#4CC27E; --warn:#F0AA2A; --bad:#F2596B; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font:400 15px/1.6 var(--font);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,ul,ol,fieldset{margin:0;padding:0}
+fieldset{border:0}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--focus);outline-offset:2px;border-radius:4px}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+.skip{position:absolute;left:-999px;top:8px;z-index:99;background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:var(--r-s)}
+.skip:focus{left:8px}
+
+/* Shell */
+.app{display:grid;grid-template-columns:84px minmax(0,1fr);grid-template-rows:64px auto;min-height:100vh}
+.top{grid-column:1/-1;position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--paper);border-bottom:1px solid var(--rule)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:23px;letter-spacing:-.02em;text-decoration:none;min-width:140px}
+.logo svg{width:30px;height:30px}
+.search{flex:1;max-width:640px;margin:0 auto;display:flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 14px;border:1px solid var(--rule);border-radius:999px;background:var(--surface);color:var(--ink-2)}
+.search:focus-within{border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in oklab,var(--focus) 22%,transparent)}
+.search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:none;color:var(--ink)}
+.search input::-webkit-search-cancel-button{display:none}
+kbd{font:500 12px var(--mono);border:1px solid var(--rule);border-radius:5px;padding:1px 7px;color:var(--ink-2)}
+.ib{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;border:0;background:none;cursor:pointer;color:var(--ink);transition:background var(--t-fast)}
+.ib:hover{background:var(--sunk)}
+.rail{grid-row:2;position:sticky;top:64px;height:calc(100vh - 64px);display:flex;flex-direction:column;gap:4px;padding:12px 8px}
+.rail a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 2px 8px;border-radius:var(--r-m);font-size:11.5px;font-weight:600;color:var(--ink-2);text-decoration:none;transition:background var(--t-fast)}
+.rail a:hover{background:var(--sunk)}
+.rail a[aria-current=page]{background:var(--surface);color:var(--ink)}
+main{grid-row:2;min-width:0;padding:24px 28px 96px}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:60px auto}
+  .top{padding:0 12px 0 16px;gap:10px}
+  .logo{min-width:0} .search kbd{display:none}
+  .rail{position:fixed;inset:auto 0 0 0;top:auto;height:auto;z-index:30;flex-direction:row;justify-content:space-around;padding:4px 6px calc(4px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--rule)}
+  .rail a{flex:1;padding:6px 2px}
+  main{grid-column:1;padding:18px 16px 96px}
+}
+@media (max-width:480px){.logo span{display:none}}
+
+/* Buttons, chips, fields */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background var(--t-fast),color var(--t-fast)}
+.btn:hover{background:var(--sunk)}
+.btn .ico{width:18px;height:18px}
+.btn.pri,.btn[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn.pri:hover,.btn[aria-pressed=true]:hover{background:color-mix(in oklab,var(--ink) 84%,var(--paper))}
+.btn.ghost{border-color:transparent;background:none}
+.btn.sm{height:30px;padding:0 10px;font-size:13px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:0;background:var(--sunk);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background var(--t-fast)}
+.chip:hover{background:color-mix(in oklab,var(--sunk) 70%,var(--ink) 8%)}
+.chip[data-line]::before{content:"";width:14px;height:5px;border-radius:3px;background:var(--cat)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.seg-ctl{display:inline-flex;padding:3px;border-radius:999px;background:var(--sunk);flex:none}
+.seg-ctl button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:none;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.seg-ctl button[aria-pressed=true]{background:var(--surface);color:var(--ink)}
+.lv{width:14px;height:14px;flex:none}
+select,input[type=text],textarea{border:1px solid var(--rule);border-radius:var(--r-s);background:var(--surface);padding:7px 10px}
+textarea{width:100%;resize:vertical;line-height:1.5}
+input[type=range]{accent-color:var(--ink);width:100%}
+.lbl-s{font-size:13px;font-weight:700;color:var(--ink-2)}
+
+/* Home */
+.hero{display:grid;gap:16px;margin-bottom:30px}
+.hero-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
+.hero h1{font-size:clamp(28px,3.4vw,42px);line-height:1.08;font-weight:800;letter-spacing:-.025em}
+.hero-head p{color:var(--ink-2);max-width:54ch;margin-top:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.map-wrap{background:var(--surface);border-radius:var(--r-l);overflow-x:auto;overscroll-behavior-x:contain}
+.map{display:block;width:100%;min-width:860px;height:auto}
+.mline{fill:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.map text{font:600 11.5px var(--font);fill:var(--ink-2);text-anchor:middle}
+.map .mname{font-size:13px;font-weight:800;fill:var(--ink);text-anchor:start}
+.map .mstart{text-anchor:middle}
+.map a{outline:none;cursor:pointer}
+.map .hit{fill:transparent}
+.map a:hover text,.map a:focus-visible text{fill:var(--ink)}
+.map a:focus-visible .hit{stroke:var(--focus);stroke-width:2.5}
+.map .st.done text{fill:var(--ink);font-weight:800}
+.origin{fill:var(--surface);stroke:var(--ink);stroke-width:2.5}
+.train{fill:var(--surface);stroke-width:2.5}
+.filters{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.filters .chips{flex:1 1 420px;min-width:0}
+.count{font-size:13.5px;color:var(--ink-2);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:30px 20px}
+.card{position:relative;content-visibility:auto;contain-intrinsic-size:auto 290px}
+.thumb{position:relative;display:block;aspect-ratio:16/9;border-radius:var(--r-m);overflow:hidden;contain:paint}
+.thumb,.stage-wrap,.cv-wrap{background-color:color-mix(in oklab,var(--cat,var(--c-case)) 7%,var(--surface));background-image:radial-gradient(var(--dot) 1px,transparent 1.4px);background-size:12px 12px}
+.thumb svg{position:absolute;inset:0;width:100%;height:100%}
+.dur{position:absolute;left:8px;top:8px;padding:1px 7px;border-radius:5px;background:rgb(14 19 26 / .84);color:#fff;font-size:12px;font-weight:700}
+.prog{position:absolute;left:0;bottom:0;width:100%;height:4px;background:var(--cat);transform-origin:left;transform:scaleX(var(--p))}
+.meta{display:grid;grid-template-columns:5px minmax(0,1fr) auto;gap:12px;padding-top:12px}
+.card-line{border-radius:3px;background:var(--cat)}
+.card h3{font-size:16px;line-height:1.35;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card h3 a{text-decoration:none}
+.card h3 a:hover{text-decoration:underline;text-underline-offset:3px}
+.sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:4px;color:var(--ink-2);font-size:13.5px}
+.sub .lvl{display:inline-flex;align-items:center;gap:5px}
+.save{width:36px;height:36px;margin:-6px -6px 0 0;border-radius:50%;border:0;background:none;color:var(--ink-2);cursor:pointer;opacity:0;transition:opacity var(--t-fast)}
+.card:hover .save,.save:focus-visible,.save[aria-pressed=true]{opacity:1}
+.save[aria-pressed=true] .ico,[data-save][aria-pressed=true] .ico{fill:currentColor}
+@media (hover:none){.save{opacity:1}}
+.empty{grid-column:1/-1;display:grid;justify-items:start;gap:12px;padding:40px 0;color:var(--ink-2);max-width:52ch}
+.page-head{margin-bottom:24px}
+.page-head h1{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.page-head p{color:var(--ink-2);margin-top:4px;max-width:60ch}
+
+/* Diagram (thumbnail + player) */
+.edge{stroke:var(--edge);stroke-width:1.6;transition:stroke var(--t-med)}
+.stage .edge.on{stroke:var(--ink-2)}
+.edge.cut{stroke:var(--bad);stroke-dasharray:4 4}
+.node{transition:opacity var(--t-med)}
+.node .shape{fill:color-mix(in oklab,var(--tc) 13%,var(--surface));stroke:var(--tc);stroke-width:1.6;transition:fill var(--t-med),stroke-width var(--t-med)}
+.node .slots{stroke:var(--tc);stroke-width:1.4}
+.node text{font-family:var(--font);font-size:9.5px;font-weight:700;fill:var(--ink);text-anchor:middle}
+.node.hl .shape{fill:color-mix(in oklab,var(--tc) 34%,var(--surface));stroke-width:2.6}
+.node.down{opacity:.3}
+.pk,.pp{fill:var(--ink)}
+.pk.bad,.pp.bad{fill:var(--bad)}
+.pk{animation:pk 1.6s linear infinite paused;transform:translate(var(--x1),var(--y1))}
+.pk.bad{animation-name:pkbad}
+@keyframes pk{from{transform:translate(var(--x1),var(--y1))}to{transform:translate(var(--x2),var(--y2))}}
+@keyframes pkbad{from{transform:translate(var(--x1),var(--y1));opacity:1}60%{opacity:1}to{transform:translate(var(--x2),var(--y2));opacity:0}}
+.card:hover .pk,.card:focus-within .pk,.next-item:hover .pk,.next-item:focus-visible .pk,.live .pk{animation-play-state:running}
+
+/* Lesson */
+.watch{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;max-width:1480px}
+@media (max-width:1120px){.watch{grid-template-columns:minmax(0,1fr)}}
+.player{border-radius:var(--r-l);overflow:hidden;background:var(--surface)}
+.player:focus-visible{outline-offset:3px;border-radius:var(--r-l)}
+.stage-wrap{aspect-ratio:16/9}
+.stage{display:block;width:100%;height:100%}
+.cap{display:grid;gap:2px;padding:14px 20px 4px;min-height:84px}
+.cap b{font-size:18px;line-height:1.3}
+.cap span{color:var(--ink-2);max-width:72ch}
+.ctrl{display:flex;align-items:center;gap:4px;padding:6px 10px 10px}
+.tl{flex:1;display:flex;gap:4px;align-items:center;height:28px;margin:0 8px;min-width:80px}
+.seg{position:relative;flex:1;height:6px;padding:0;border:0;border-radius:3px;background:var(--rule);overflow:hidden;cursor:pointer;transition:transform var(--t-fast)}
+.seg:hover{transform:scaleY(1.7)}
+.seg i{position:absolute;inset:0;background:var(--cat);transform-origin:left;transform:scaleX(0)}
+.time{font-size:13px;color:var(--ink-2);min-width:76px;text-align:right}
+.spd{font-weight:700;font-size:13px;width:48px;border-radius:999px}
+.w-title{font-size:clamp(22px,2.4vw,28px);line-height:1.2;font-weight:800;letter-spacing:-.015em;margin:18px 0 10px}
+.w-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.w-bar .sub{margin:0}
+.line-tag{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--ink)}
+.line-tag::before{content:"";width:16px;height:5px;border-radius:3px;background:var(--cat)}
+.w-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--rule);margin:24px 0 18px;overflow-x:auto}
+.tab{flex:none;border:0;background:none;padding:10px 14px;font-weight:700;color:var(--ink-2);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--cat)}
+.prose{max-width:70ch}
+.prose .lead{font-size:17px;line-height:1.6}
+.prose h2{font-size:17px;font-weight:800;margin:26px 0 8px}
+.prose ul{padding-left:20px;display:grid;gap:6px}
+.steps{list-style:none;display:grid;gap:4px}
+.steps button{display:grid;grid-template-columns:52px 1fr;gap:2px 12px;width:100%;padding:10px 12px;border:0;border-radius:var(--r-m);background:none;text-align:left;cursor:pointer}
+.steps button:hover{background:var(--sunk)}
+.steps button[aria-current=step]{background:var(--surface)}
+.steps .num{grid-row:span 2;color:var(--ink-2);font-size:13px;padding-top:2px}
+.steps span:last-child{color:var(--ink-2)}
+.quiz{display:grid;gap:14px;max-width:62ch}
+.quiz legend{font-weight:700;font-size:17px;margin-bottom:10px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--surface);cursor:pointer;margin-bottom:8px}
+.opt:has(input:checked){border-color:var(--ink)}
+.opt input{margin-top:5px;accent-color:var(--ink)}
+.qres{font-weight:700;min-height:1.6em}
+.qres.ok{color:var(--ok)} .qres.no{color:var(--bad)}
+.quiz .btn{justify-self:start}
+.mynotes{display:grid;gap:10px;max-width:62ch}
+.mynotes .btn{justify-self:start}
+.note-list{list-style:none;display:grid;gap:8px;margin-top:8px}
+.note-list li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:10px 12px;background:var(--surface);border-radius:var(--r-m)}
+.note-list .tlink{border:0;background:var(--sunk);border-radius:5px;padding:2px 8px;font-size:13px;font-weight:700;cursor:pointer}
+.muted{color:var(--ink-2)}
+.next h2{font-size:16px;font-weight:800;margin-bottom:12px}
+.next-list{display:grid;gap:12px}
+.next-item{display:grid;grid-template-columns:168px minmax(0,1fr);gap:12px;text-decoration:none;border-radius:var(--r-m)}
+.next-item .thumb{border-radius:8px}
+.next-item b{font-size:14.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.next-item .sub{font-size:12.5px;gap:2px 10px}
+.next-item:hover b{text-decoration:underline;text-underline-offset:3px}
+
+/* Playground */
+.pg-bar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin:18px 0 16px}
+.fld{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
+.fld.rps{flex:1 1 300px;max-width:440px}
+.fld output{min-width:86px;font-weight:800}
+.fld-col{display:grid;gap:6px;font-size:13.5px;font-weight:600;margin-top:14px}
+.fld-col output{font-weight:800;justify-self:end;margin-top:-26px}
+.pg-body{display:grid;grid-template-columns:176px minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:1180px){.pg-body{grid-template-columns:minmax(0,1fr)}.palette{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.palette .lbl-s{grid-column:1/-1}}
+.palette{display:grid;gap:6px}
+.pal{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--surface);text-align:left;cursor:pointer;transition:background var(--t-fast)}
+.pal:hover{background:var(--sunk)}
+.pal svg{width:44px;height:20px}
+.pal b{display:block;font-size:13.5px;line-height:1.2}
+.pal small{color:var(--ink-2);font-size:11.5px}
+.cv-wrap{position:relative;border-radius:var(--r-l);overflow:hidden}
+.cv-wrap canvas{display:block;width:100%;touch-action:none;cursor:grab}
+.cv-wrap canvas.connecting{cursor:crosshair}
+.cv-hint{position:absolute;left:12px;bottom:10px;right:12px;font-size:13px;color:var(--ink-2);pointer-events:none}
+.side{display:grid;gap:12px}
+.panel{background:var(--surface);border-radius:var(--r-l);padding:16px}
+.panel h2{font-size:15px;font-weight:800;margin-bottom:10px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.metric b{display:block;font-size:22px;line-height:1.2;font-weight:800}
+.metric span{font-size:12.5px;color:var(--ink-2)}
+.metric.bad b{color:var(--bad)}
+.advice{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);font-size:13.5px}
+.checks{list-style:none;display:grid;gap:6px;margin-top:10px;font-size:13.5px}
+.checks li{display:flex;gap:8px;align-items:center}
+.checks .ico{width:16px;height:16px}
+.checks .pass{color:var(--ok)} .checks .fail{color:var(--bad)}
+.win{margin-top:10px;font-weight:800;color:var(--ok)}
+.conns{list-style:none;display:grid;gap:4px;margin-top:6px;font-size:14px}
+.conns li{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#pg-del{margin-top:16px}
+
+/* Design system page */
+.ds section{margin:0 0 48px;max-width:1100px}
+.ds h2{font-size:21px;font-weight:800;margin-bottom:6px;letter-spacing:-.01em}
+.ds .intro{color:var(--ink-2);max-width:64ch;margin-bottom:18px}
+.princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.princ div{padding:16px 0 0;border-top:5px solid var(--cat)}
+.princ b{display:block;font-size:16px;margin-bottom:4px}
+.princ p{color:var(--ink-2);font-size:14px}
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sw{background:var(--surface);border-radius:var(--r-m);overflow:hidden;font-size:13px}
+.sw i{display:block;height:56px;background:var(--v);border-bottom:1px solid var(--rule)}
+.sw div{padding:8px 10px}
+.sw b{display:block}
+.sw code{font-family:var(--mono);color:var(--ink-2);font-size:12px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.kv{display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:10px 24px;align-items:baseline;background:var(--surface);border-radius:var(--r-m);padding:16px 18px}
+.kv code{font-family:var(--mono);font-size:13px}
+.kv span{color:var(--ink-2);font-size:14px}
+.type-row{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--rule)}
+.type-row small{color:var(--ink-2);font-size:12.5px}
+.rules{display:grid;gap:10px;padding-left:20px;max-width:76ch}
+.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.node-grid small{display:block;color:var(--ink-2);font-size:11.5px;line-height:1.4;margin-top:4px}
+.tech-ex{font-size:13px;margin:-4px 0 12px}
+.node-grid figure{margin:0;background:var(--surface);border-radius:var(--r-m);padding:10px;text-align:center;font-size:13px}
+.node-grid svg{width:100%;height:44px}
+.spc{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.spc div{display:grid;gap:4px;justify-items:center;font-size:12px;color:var(--ink-2)}
+.spc i{display:block;background:var(--c-fondasi);border-radius:2px}
+
+
+/* Akun */
+#acct{flex:none}
+.acct{overflow:hidden;padding:0;width:36px;height:36px;border:1px solid var(--rule)}
+.acct img{width:100%;height:100%;object-fit:cover}
+.acct .ini{font-weight:800}
+dialog{border:0;border-radius:var(--r-l);background:var(--surface);color:var(--ink);padding:24px;width:min(420px,calc(100vw - 32px));box-shadow:0 20px 60px rgb(0 0 0 / .25)}
+dialog::backdrop{background:rgb(14 19 26 / .45)}
+dialog h2{font-size:21px;font-weight:800;margin-bottom:6px;padding-right:32px}
+dialog .muted{margin-bottom:16px}
+.dlg-x{position:absolute;top:12px;right:12px}
+.oauth{display:grid;gap:8px}
+.oauth .btn{height:44px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.note{margin-top:14px;font-size:13.5px;color:var(--ink-2);padding:10px 12px;border-radius:var(--r-s);background:var(--sunk)}
+.rail a[hidden]{display:none}
+
+/* Admin */
+.adm section{margin-bottom:36px;max-width:1100px}
+.adm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.adm-head h2{font-size:21px;font-weight:800}
+.adm-list{display:grid;gap:2px;background:var(--surface);border-radius:var(--r-l);padding:8px}
+.adm-row{display:grid;grid-template-columns:5px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:8px;border-radius:var(--r-m)}
+.adm-row:hover{background:var(--sunk)}
+.adm-row .card-line{align-self:stretch}
+.adm-dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.adm-card{display:grid;gap:8px;background:var(--surface);border-radius:var(--r-l);padding:10px}
+.adm-card .thumb:hover .pk{animation-play-state:running}
+.adm-card span{display:block;font-size:13px}
+.back{font-size:14px;font-weight:600;color:var(--ink-2)}
+.adm-edit{display:grid;grid-template-columns:minmax(0,560px) minmax(0,360px);gap:28px;align-items:start}
+.adm-edit.wide{grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:1400px}
+.adm-edit aside{position:sticky;top:84px;display:grid;gap:8px}
+@media (max-width:980px){.adm-edit,.adm-edit.wide{grid-template-columns:minmax(0,1fr)}.adm-edit aside{position:static}}
+.adm-form{display:grid;gap:16px}
+.adm-form label{display:grid;gap:6px;font-weight:700;font-size:14px;flex:1 1 140px}
+.adm-form small{font-weight:400;color:var(--ink-2);font-size:12.5px}
+.adm-form input[type=text],.adm-form input[type=number]{border:1px solid var(--rule);border-radius:var(--r-s);background:var(--surface);padding:7px 10px;font:inherit;font-weight:400}
+.adm-form input[readonly]{background:var(--sunk);color:var(--ink-2)}
+.adm-form textarea{font-weight:400}
+.adm-form .code{font:13px/1.55 var(--mono);white-space:pre;overflow-wrap:normal;overflow-x:auto}
+.help summary{cursor:pointer;font-weight:700;font-size:14px}
+.help .kv{margin-top:8px;grid-template-columns:auto 1fr}
+.errs{color:var(--bad);font-size:14px;padding-left:18px;display:grid;gap:4px}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .pk{animation:none!important;transform:translate(calc((var(--x1) + var(--x2)) / 2),calc((var(--y1) + var(--y2)) / 2))}
+  .train{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#view">Langsung ke konten</a>
+<div class="app">
+  <header class="top">
+    <a class="logo" href="#/" aria-label="Alur, beranda">
+      <svg viewBox="0 0 30 30" aria-hidden="true"><path d="M3 7h7l6 8h11" fill="none" stroke="var(--c-fondasi)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 15h24" fill="none" stroke="var(--c-cache)" stroke-width="3.2" stroke-linecap="round"/><path d="M3 23h7l6-8" fill="none" stroke="var(--c-msg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="15" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.4"/></svg>
+      <span>Alur</span>
+    </a>
+    <label class="search">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <span class="skip">Cari pelajaran</span>
+      <input id="q" type="search" placeholder="Cari pelajaran, misalnya cache atau sharding" autocomplete="off">
+      <kbd>/</kbd>
+    </label>
+    <button class="ib" id="theme" aria-label="Ganti tema terang atau gelap"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
+    <button id="acct" class="btn sm">Masuk</button>
+  </header>
+  <nav class="rail" aria-label="Navigasi utama"></nav>
+  <main id="view" tabindex="-1"></main>
+</div>
+<dialog id="acct-dlg" aria-label="Akun"><div id="acct-body"></div><button class="ib dlg-x" data-close aria-label="Tutup"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></dialog>
+<noscript>Alur membutuhkan JavaScript untuk menampilkan animasi.</noscript>
+
+<script src="config.js"></script>
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Math.round(n).toLocaleString('id-ID');
+const short = n => new Intl.NumberFormat('id-ID', {notation: 'compact', maximumFractionDigits: 1}).format(n);
+const pct = x => (x * 100).toLocaleString('id-ID', {maximumFractionDigits: 1}) + '%';
+const mmss = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const root = document.documentElement, view = $('#view');
+
+const store = (() => {
+  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, theme: null};
+  try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
+  return {s, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} }};
+})();
+
+const I = {
+  home: '<path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/>',
+  nodes: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.2 7.6 10.8 16M15.8 7.6 13.2 16M8.5 6h7"/>',
+  bookmark: '<path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/>',
+  swatch: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><circle cx="17" cy="17" r="3.5"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
+  pause: '<path d="M7.5 5h3v14h-3zM13.5 5h3v14h-3z" fill="currentColor"/>',
+  prev: '<path d="M6.5 6v12M18 6l-8 6 8 6z"/>',
+  next: '<path d="M17.5 6v12M6 6l8 6-8 6z"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  cross: '<path d="M6 6l12 12M18 6 6 18"/>',
+  google: '<path fill="currentColor" stroke="none" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zm-5.6-8c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2zM12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/>',
+  github: '<path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+};
+const ico = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+
+/* ---------- Content ---------- */
+const CATS = [
+  {id: 'fondasi', name: 'Fondasi', v: '--c-fondasi'},
+  {id: 'jaringan', name: 'Jaringan', v: '--c-jaringan'},
+  {id: 'storage', name: 'Penyimpanan data', v: '--c-storage'},
+  {id: 'cache', name: 'Caching', v: '--c-cache'},
+  {id: 'msg', name: 'Messaging', v: '--c-msg'},
+  {id: 'scale', name: 'Skalabilitas & keandalan', v: '--c-scale'},
+  {id: 'case', name: 'Studi kasus', v: '--c-case'},
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const LV = ['Pemula', 'Menengah', 'Lanjutan'];
+// tech: contoh perangkat lunak/layanan nyata untuk peran komponen ini.
+const TYPES = {
+  client: {name: 'Client', v: '--c-case', tech: ['Browser', 'Aplikasi mobile', 'curl']},
+  lb: {name: 'Load balancer', v: '--c-fondasi', tech: ['Nginx', 'HAProxy', 'Envoy', 'Traefik', 'AWS ELB', 'Google Cloud Load Balancing']},
+  server: {name: 'Server', v: '--c-scale', tech: ['Nginx', 'Apache httpd', 'Caddy', 'Node.js', 'Go net/http', 'Spring Boot', 'Laravel']},
+  cache: {name: 'Cache', v: '--c-cache', tech: ['Redis', 'Valkey', 'Memcached']},
+  db: {name: 'Database', v: '--c-storage', tech: ['PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra', 'DynamoDB']},
+  queue: {name: 'Queue', v: '--c-msg', tech: ['Apache Kafka', 'RabbitMQ', 'AWS SQS', 'NATS', 'Redis Streams']},
+  cdn: {name: 'CDN', v: '--c-jaringan', tech: ['Cloudflare', 'AWS CloudFront', 'Akamai', 'Fastly']},
+  reject: {name: 'Ditolak', v: '--bad'},
+};
+const techOf = t => TYPES[t].tech ? TYPES[t].tech.join(', ') : '';
+
+// Diagram = data. Thumbnail, player, dan playground memakai format yang sama.
+// node: [id, type, x, y, label] di viewBox 320x180. flow "a>b"; awalan "!" = gagal/ditolak.
+const DG = {
+  web: {nodes: [['c','client',45,90,'Browser'],['s','server',160,90,'Web server'],['d','db',275,90,'Database']], edges: ['c-s','s-d'], steps: [
+    {t: 'Request', d: 'Browser mengirim HTTP request ke web server.', f: ['c>s'], h: ['s']},
+    {t: 'Query', d: 'Server butuh data, jadi ia bertanya ke database.', f: ['s>d'], h: ['d']},
+    {t: 'Response', d: 'Data kembali ke server, dirender, lalu dikirim ke browser.', f: ['d>s','s>c']},
+    {t: 'Di mana bottleneck?', d: 'Saat trafik naik, satu server dan satu database menjadi titik lemah pertama.', f: ['c>s','c>s','s>d','s>d'], h: ['s','d']},
+  ], quiz: {q: 'Pada arsitektur satu server, komponen mana yang menjadi single point of failure?', o: ['Browser','Web server dan database','Tidak ada'], a: 1}},
+  lb: {nodes: [['c','client',45,90,'Client'],['lb','lb',150,90,'Load balancer'],['s1','server',262,38,'Server 1'],['s2','server',262,90,'Server 2'],['s3','server',262,142,'Server 3']], edges: ['c-lb','lb-s1','lb-s2','lb-s3'], steps: [
+    {t: 'Satu pintu masuk', d: 'Semua request dari client masuk ke satu alamat: load balancer.', f: ['c>lb'], h: ['lb']},
+    {t: 'Round robin', d: 'Request dibagi bergiliran ke server 1, 2, lalu 3.', f: ['c>lb','lb>s1','lb>s2','lb>s3']},
+    {t: 'Health check', d: 'Server 2 gagal health check, jadi load balancer berhenti mengirim trafik ke sana.', f: ['c>lb','lb>s1','lb>s3'], x: ['s2']},
+    {t: 'Scale out', d: 'Kapasitas naik dengan menambah server, bukan memperbesar satu server.', f: ['c>lb','c>lb','lb>s1','lb>s2','lb>s3'], h: ['s1','s2','s3']},
+  ], quiz: {q: 'Apa yang dilakukan load balancer ketika satu server gagal health check?', o: ['Mengirim ulang semua request ke server itu','Berhenti mengarahkan trafik ke server itu','Mematikan semua server'], a: 1}},
+  dns: {nodes: [['b','client',45,90,'Browser'],['r','server',148,90,'Resolver'],['root','server',268,35,'Root'],['tld','server',268,90,'TLD .dev'],['ns','server',268,145,'Name server']], edges: ['b-r','r-root','r-tld','r-ns'], steps: [
+    {t: 'Bertanya ke resolver', d: 'Browser bertanya: berapa alamat IP alur.dev?', f: ['b>r'], h: ['r']},
+    {t: 'Tanya root', d: 'Resolver belum tahu, jadi ia bertanya ke root server yang menunjuk ke server TLD .dev.', f: ['r>root','root>r'], h: ['root']},
+    {t: 'TLD lalu name server', d: 'TLD menunjuk ke name server yang menyimpan record A milik alur.dev.', f: ['r>tld','r>ns','ns>r'], h: ['ns']},
+    {t: 'Simpan sesuai TTL', d: 'Resolver mengembalikan IP ke browser dan menyimpannya selama TTL.', f: ['r>b'], h: ['r']},
+  ], quiz: {q: 'Apa fungsi TTL pada record DNS?', o: ['Menentukan berapa lama jawaban boleh disimpan di cache','Mengenkripsi query DNS','Membatasi jumlah request per detik'], a: 0}},
+  cdn: {nodes: [['u1','client',48,45,'User Jakarta'],['u2','client',48,135,'User Berlin'],['e1','cdn',162,45,'Edge SG'],['e2','cdn',162,135,'Edge FRA'],['o','server',272,90,'Origin']], edges: ['u1-e1','u2-e2','e1-o','e2-o'], steps: [
+    {t: 'Edge terdekat', d: 'Setiap user diarahkan ke edge server yang paling dekat secara jaringan.', f: ['u1>e1','u2>e2'], h: ['e1','e2']},
+    {t: 'Cache miss', d: 'Edge belum punya file, jadi ia mengambilnya dari origin satu kali.', f: ['e1>o','o>e1'], h: ['o']},
+    {t: 'Cache hit', d: 'Request berikutnya dilayani langsung dari edge. Origin tidak tersentuh.', f: ['u1>e1','e1>u1','u2>e2','e2>u2']},
+    {t: 'Purge', d: 'Saat konten berubah, cache di edge dihapus agar user tidak melihat versi lama.', f: ['o>e1','o>e2'], h: ['e1','e2']},
+  ], quiz: {q: 'Kenapa CDN menurunkan latensi?', o: ['Konten disajikan dari lokasi yang lebih dekat ke user','Database menjadi lebih cepat','Ukuran file otomatis mengecil'], a: 0}},
+  repl: {nodes: [['a','server',45,90,'App'],['p','db',150,90,'Primary'],['r1','db',265,40,'Replica 1'],['r2','db',265,140,'Replica 2']], edges: ['a-p','p-r1','p-r2','a-r1','a-r2'], steps: [
+    {t: 'Tulis ke primary', d: 'Semua operasi tulis masuk ke satu node: primary.', f: ['a>p'], h: ['p']},
+    {t: 'Replikasi', d: 'Primary mengirim log perubahan ke setiap replica.', f: ['p>r1','p>r2']},
+    {t: 'Baca dari replica', d: 'Query baca disebar ke replica sehingga primary tidak kewalahan.', f: ['a>r1','a>r2'], h: ['r1','r2']},
+    {t: 'Replication lag', d: 'Replica bisa tertinggal beberapa milidetik, jadi data yang baru ditulis bisa terbaca basi.', f: ['p>r1','!p>r2'], h: ['r2']},
+  ], quiz: {q: 'Apa risiko membaca dari replica dengan replikasi asinkron?', o: ['Data yang terbaca bisa belum terbaru','Primary jadi read-only','Replica menolak semua query'], a: 0}},
+  shard: {nodes: [['c','client',45,90,'App'],['r','lb',150,90,'Router'],['a','db',265,35,'Shard A–H'],['b','db',265,90,'Shard I–P'],['z','db',265,145,'Shard Q–Z']], edges: ['c-r','r-a','r-b','r-z'], steps: [
+    {t: 'Satu tabel terlalu besar', d: 'Data user tidak muat lagi di satu mesin, jadi dipecah berdasarkan kunci.', f: ['c>r'], h: ['r']},
+    {t: 'Routing per kunci', d: 'Router membaca shard key, misalnya huruf awal username, lalu mengirim ke shard yang tepat.', f: ['c>r','r>a'], h: ['a']},
+    {t: 'Beban tersebar', d: 'Setiap shard hanya menyimpan sebagian data dan menerima sebagian trafik.', f: ['r>a','r>b','r>z']},
+    {t: 'Hot shard', d: 'Kunci yang tidak merata membuat satu shard kewalahan. Consistent hashing membantu meratakan.', f: ['c>r','r>b','r>b','!r>b'], h: ['b']},
+  ], quiz: {q: 'Apa yang terjadi jika shard key dipilih dengan buruk?', o: ['Muncul hot shard yang menerima trafik jauh lebih besar','Data otomatis tereplikasi','Query join jadi lebih cepat'], a: 0}},
+  cache: {nodes: [['c','client',40,90,'Client'],['a','server',140,90,'App'],['k','cache',262,40,'Cache'],['d','db',262,140,'Database']], edges: ['c-a','a-k','a-d'], steps: [
+    {t: 'Cek cache dulu', d: 'App selalu bertanya ke cache sebelum ke database.', f: ['c>a','a>k'], h: ['k']},
+    {t: 'Cache miss', d: 'Data tidak ada di cache, jadi app membacanya dari database.', f: ['!k>a','a>d','d>a'], h: ['d']},
+    {t: 'Isi cache', d: 'Hasil dari database disimpan ke cache dengan TTL.', f: ['a>k'], h: ['k']},
+    {t: 'Cache hit', d: 'Request berikutnya dijawab dari memori dalam hitungan milidetik.', f: ['c>a','a>k','k>a','a>c']},
+  ], quiz: {q: 'Pada pola cache-aside, siapa yang mengisi cache setelah cache miss?', o: ['Database secara otomatis','Aplikasi','Client'], a: 1}},
+  queue: {nodes: [['p1','client',45,45,'Producer A'],['p2','client',45,135,'Producer B'],['q','queue',160,90,'Queue'],['w1','server',272,45,'Worker 1'],['w2','server',272,135,'Worker 2']], edges: ['p1-q','p2-q','q-w1','q-w2'], steps: [
+    {t: 'Kirim lalu lanjut', d: 'Producer menaruh pesan ke queue dan langsung kembali bekerja tanpa menunggu.', f: ['p1>q','p2>q'], h: ['q']},
+    {t: 'Worker mengambil', d: 'Worker menarik pesan sesuai kecepatannya sendiri.', f: ['q>w1','q>w2']},
+    {t: 'Lonjakan trafik', d: 'Saat producer mengirim lebih cepat, pesan menumpuk di queue, bukan ditolak.', f: ['p1>q','p1>q','p2>q','p2>q','q>w1'], h: ['q']},
+    {t: 'Ack dan retry', d: 'Pesan baru dihapus setelah worker mengirim ack. Jika worker gagal, pesan dikirim ulang ke worker lain.', f: ['q>w1','w1>q','q>w1'], x: ['w2']},
+  ], quiz: {q: 'Kenapa queue membantu saat terjadi lonjakan trafik?', o: ['Pesan ditampung lalu diproses bertahap','Queue menambah server secara otomatis','Pesan lama dihapus'], a: 0}},
+  pubsub: {nodes: [['p','server',45,90,'Publisher'],['t','queue',155,90,'Topic'],['s1','server',268,35,'Notifikasi'],['s2','server',268,90,'Analitik'],['s3','server',268,145,'Search']], edges: ['p-t','t-s1','t-s2','t-s3'], steps: [
+    {t: 'Publikasi event', d: 'Layanan order mempublikasikan event “pesanan dibuat” ke topic.', f: ['p>t'], h: ['t']},
+    {t: 'Fan-out', d: 'Setiap subscriber menerima salinan event yang sama.', f: ['t>s1','t>s2','t>s3']},
+    {t: 'Saling tidak kenal', d: 'Publisher tidak tahu siapa subscriber-nya. Menambah subscriber tidak mengubah publisher.', f: ['p>t','t>s1','t>s2','t>s3'], h: ['s3']},
+    {t: 'Subscriber lambat', d: 'Subscriber yang lambat punya offset sendiri, jadi tidak menghambat yang lain.', f: ['t>s1','t>s3','!t>s2'], h: ['s2']},
+  ], quiz: {q: 'Apa beda utama pub/sub dengan queue biasa?', o: ['Satu event bisa diterima banyak subscriber','Pub/sub tidak menyimpan pesan sama sekali','Pub/sub hanya untuk satu consumer'], a: 0}},
+  rate: {nodes: [['c','client',42,80,'Client'],['l','lb',155,80,'Rate limiter'],['api','server',272,80,'API'],['x','reject',155,148,'HTTP 429']], edges: ['c-l','l-api','l-x'], steps: [
+    {t: 'Ember token', d: 'Setiap client punya ember berisi 10 token yang terisi ulang satu token per detik.', f: ['c>l'], h: ['l']},
+    {t: 'Request lolos', d: 'Setiap request mengambil satu token lalu diteruskan ke API.', f: ['c>l','l>api']},
+    {t: 'Ember kosong', d: 'Saat token habis, request ditolak dengan HTTP 429 Too Many Requests.', f: ['c>l','c>l','!l>x','l>api'], h: ['x']},
+    {t: 'Burst diizinkan', d: 'Ukuran ember menentukan seberapa besar lonjakan singkat yang masih diterima.', f: ['c>l','l>api','l>api'], h: ['l']},
+  ], quiz: {q: 'Dalam token bucket, apa yang menentukan besar burst yang diizinkan?', o: ['Kapasitas ember','Jumlah server API','Ukuran response'], a: 0}},
+  gateway: {nodes: [['c','client',45,90,'Mobile app'],['g','lb',150,90,'API gateway'],['au','server',268,35,'Auth'],['or','server',268,90,'Order'],['pay','server',268,145,'Payment']], edges: ['c-g','g-au','g-or','g-pay'], steps: [
+    {t: 'Satu pintu', d: 'Aplikasi hanya mengenal satu alamat. Gateway meneruskan ke layanan yang tepat.', f: ['c>g'], h: ['g']},
+    {t: 'Autentikasi terpusat', d: 'Gateway memvalidasi token ke layanan Auth sebelum meneruskan request.', f: ['g>au','au>g'], h: ['au']},
+    {t: 'Layanan gagal', d: 'Payment lambat dan timeout. Tanpa perlindungan, thread gateway ikut habis menunggu.', f: ['g>or','!g>pay','!g>pay'], h: ['pay']},
+    {t: 'Circuit terbuka', d: 'Circuit breaker memutus panggilan ke Payment dan langsung mengembalikan error yang jelas.', f: ['c>g','g>or','g>au'], x: ['pay']},
+  ], quiz: {q: 'Apa tujuan circuit breaker?', o: ['Menghentikan panggilan ke layanan yang sedang gagal agar kegagalan tidak menjalar','Mengenkripsi trafik','Menambah replika database'], a: 0}},
+  cap: {nodes: [['n1','db',70,55,'Node A'],['n2','db',250,55,'Node B'],['c','client',160,140,'Client']], edges: ['n1-n2','c-n1','c-n2'], steps: [
+    {t: 'Dua node sinkron', d: 'Data ditulis di A lalu disalin ke B. Keduanya konsisten.', f: ['c>n1','n1>n2']},
+    {t: 'Partisi jaringan', d: 'Jaringan antara A dan B putus. Mereka tidak bisa saling bicara.', f: ['!n1>n2'], h: ['n1','n2'], cut: ['n1-n2']},
+    {t: 'Pilih konsistensi', d: 'Sistem CP menolak tulis di B agar tidak ada data yang bertentangan.', f: ['c>n1','!c>n2'], cut: ['n1-n2']},
+    {t: 'Pilih ketersediaan', d: 'Sistem AP tetap menerima tulis di keduanya dan merekonsiliasi setelah partisi pulih.', f: ['c>n1','c>n2'], h: ['n1','n2'], cut: ['n1-n2']},
+  ], quiz: {q: 'Saat terjadi partisi jaringan, sistem CP akan…', o: ['Menolak sebagian request demi konsistensi','Tetap menerima semua tulis','Menghapus data di salah satu node'], a: 0}},
+};
+const PRESET_OF = {web: 'single', lb: 'lb', dns: 'single', cdn: 'cdn', repl: 'cache', shard: 'lb', cache: 'cache', queue: 'queue', pubsub: 'queue', rate: 'lb', gateway: 'lb', cap: 'single'};
+
+const L = [
+  {id:'f1',cat:'fondasi',t:'Apa itu system design?',s:'Pengantar',lv:0,min:6,dg:'web',d:'Gambaran besar perjalanan sebuah request: dari browser, ke server, ke database, lalu kembali lagi. Semua topik lain adalah variasi dari alur ini.',p:['System design adalah memilih komponen dan cara mereka berkomunikasi untuk memenuhi kebutuhan fungsional dan non-fungsional.','Kebutuhan non-fungsional seperti latensi, ketersediaan, dan biaya biasanya yang menentukan arsitektur.','Mulai dari desain paling sederhana, lalu tambah komponen hanya saat ada bottleneck yang jelas.']},
+  {id:'f2',cat:'fondasi',t:'Latensi vs throughput',s:'Latensi',lv:0,min:8,dg:'web',d:'Latensi adalah berapa lama satu request selesai. Throughput adalah berapa banyak request selesai per detik. Keduanya sering saling tarik.',p:['Latensi diukur per request dan biasanya dilaporkan sebagai p50, p95, dan p99.','Throughput naik dengan paralelisme, tapi antrean yang memanjang menaikkan latensi.','Saat utilisasi mendekati 100%, latensi melonjak tajam, bukan naik perlahan.']},
+  {id:'f3',cat:'fondasi',t:'Scaling vertikal vs horizontal',s:'Scaling',lv:0,min:9,dg:'lb',d:'Vertikal berarti mesin lebih besar. Horizontal berarti mesin lebih banyak. Pelajari kapan masing-masing masuk akal.',p:['Scaling vertikal sederhana, tapi punya batas fisik dan tetap satu titik gagal.','Scaling horizontal butuh load balancer dan server yang stateless.','Simpan state seperti sesi dan file di luar server agar server mudah ditambah atau dibuang.']},
+  {id:'f4',cat:'fondasi',t:'Estimasi kapasitas',s:'Estimasi',lv:1,min:12,dg:'web',d:'Hitungan kasar dari jumlah user aktif menjadi request per detik, kebutuhan storage, dan bandwidth.',p:['Satu juta request per hari kira-kira 12 request per detik rata-rata.','Rencanakan untuk puncak, biasanya 2 sampai 10 kali rata-rata.','Bulatkan angka dengan berani; tujuannya urutan besaran, bukan presisi.']},
+  {id:'n1',cat:'jaringan',t:'Bagaimana DNS bekerja',s:'DNS',lv:0,min:8,dg:'dns',d:'Mengikuti satu pertanyaan “berapa IP alamat ini?” dari browser sampai name server, lengkap dengan caching di setiap lapisan.',p:['Resolver bertanya ke root, lalu TLD, lalu name server secara berurutan.','Setiap jawaban disimpan sesuai TTL sehingga query berikutnya jauh lebih cepat.','TTL pendek memudahkan migrasi, TTL panjang mengurangi beban dan latensi.']},
+  {id:'n2',cat:'jaringan',t:'Load balancer L4 vs L7',s:'Load balancer',lv:1,min:11,dg:'lb',d:'Load balancer membagi trafik ke banyak server. L4 melihat IP dan port, L7 bisa membaca isi HTTP seperti path dan header.',p:['Algoritma umum: round robin, least connections, dan hash berdasarkan IP.','Health check menjauhkan trafik dari server yang sakit secara otomatis.','L7 memungkinkan routing per path, tapi lebih mahal secara komputasi daripada L4.']},
+  {id:'n3',cat:'jaringan',t:'CDN dan edge caching',s:'CDN',lv:1,min:10,dg:'cdn',d:'Menaruh salinan konten di server yang dekat dengan user agar halaman terasa cepat di mana pun, sekaligus melindungi origin.',p:['Konten statis seperti gambar, CSS, dan video adalah kandidat utama CDN.','Cache key dan header Cache-Control menentukan apa yang boleh disimpan di edge.','Purge atau versi pada nama file dipakai saat konten berubah.']},
+  {id:'s1',cat:'storage',t:'SQL vs NoSQL',s:'SQL vs NoSQL',lv:0,min:10,dg:'web',d:'Membandingkan database relasional dan non-relasional dari sisi model data, transaksi, dan cara scaling.',p:['SQL unggul untuk relasi kompleks dan transaksi ACID.','NoSQL (key-value, dokumen, wide-column) unggul untuk skema fleksibel dan scaling horizontal.','Pilih berdasarkan pola akses data, bukan tren.']},
+  {id:'s2',cat:'storage',t:'Replikasi primary-replica',s:'Replikasi',lv:1,min:12,dg:'repl',d:'Menyalin data ke beberapa node agar baca bisa disebar dan sistem tetap hidup saat satu node mati.',p:['Tulis ke primary, baca dari replica untuk menyebar beban baca.','Replikasi asinkron cepat tapi bisa menimbulkan replication lag.','Failover mempromosikan replica menjadi primary baru saat primary mati.']},
+  {id:'s3',cat:'storage',t:'Sharding dan partisi',s:'Sharding',lv:2,min:14,dg:'shard',d:'Memecah data ke beberapa mesin berdasarkan shard key saat satu database tidak lagi cukup.',p:['Shard key yang baik menyebar data dan trafik secara merata.','Query lintas shard dan join menjadi mahal setelah sharding.','Resharding sulit, jadi rencanakan jumlah partisi sejak awal.']},
+  {id:'s4',cat:'storage',t:'Consistent hashing',s:'Consistent hashing',lv:2,min:13,dg:'shard',d:'Teknik memetakan kunci ke node sehingga menambah atau mengurangi node hanya memindahkan sebagian kecil data.',p:['Node dan kunci ditaruh di cincin hash yang sama.','Saat node ditambah, hanya kunci di antara node baru dan tetangganya yang pindah.','Virtual node membuat distribusi beban lebih merata.']},
+  {id:'c1',cat:'cache',t:'Pola cache-aside',s:'Cache-aside',lv:0,min:9,dg:'cache',d:'Aplikasi memeriksa cache lebih dulu, membaca database saat miss, lalu mengisi cache untuk request berikutnya.',p:['Pola caching paling umum karena sederhana dan aman saat cache mati.','Cache miss pertama tetap lambat; hit berikutnya cepat.','TTL membatasi seberapa lama data basi boleh disajikan.']},
+  {id:'c2',cat:'cache',t:'Write-through vs write-back',s:'Write policy',lv:1,min:11,dg:'cache',d:'Dua cara menangani operasi tulis saat ada cache: tulis ke keduanya sekaligus, atau tulis ke cache dulu dan database belakangan.',p:['Write-through menjaga cache dan database selalu sinkron, dengan biaya latensi tulis.','Write-back cepat untuk tulis, tapi data bisa hilang jika cache mati sebelum flush.','Write-around melewati cache untuk data yang jarang dibaca ulang.']},
+  {id:'c3',cat:'cache',t:'Invalidasi dan eviction',s:'Eviction',lv:1,min:10,dg:'cache',d:'Memori cache terbatas. Pelajari kapan data dibuang (LRU, LFU, TTL) dan cara mencegah data basi.',p:['LRU membuang data yang paling lama tidak diakses.','Invalidasi eksplisit saat data berubah lebih akurat daripada menunggu TTL.','Waspadai thundering herd saat banyak kunci kedaluwarsa bersamaan.']},
+  {id:'m1',cat:'msg',t:'Message queue',s:'Queue',lv:0,min:9,dg:'queue',d:'Memisahkan pengirim dan pemroses dengan antrean pesan agar sistem tahan lonjakan dan kegagalan sementara.',p:['Producer tidak perlu menunggu pekerjaan selesai.','Worker bisa ditambah sesuai panjang antrean.','Ack dan retry memastikan pesan tidak hilang saat worker gagal.']},
+  {id:'m2',cat:'msg',t:'Pub/Sub',s:'Pub/Sub',lv:1,min:10,dg:'pubsub',d:'Satu event dikirim ke banyak layanan yang tertarik, tanpa pengirim perlu tahu siapa saja penerimanya.',p:['Topic menjadi kontrak antara publisher dan subscriber.','Setiap subscriber memproses dengan kecepatan dan offset sendiri.','Cocok untuk notifikasi, analitik, dan sinkronisasi antar layanan.']},
+  {id:'m3',cat:'msg',t:'Jaminan pengiriman pesan',s:'Delivery',lv:2,min:13,dg:'queue',d:'At-most-once, at-least-once, dan exactly-once: apa artinya dan kenapa idempotensi lebih penting dari janji broker.',p:['At-least-once paling umum, sehingga pesan bisa diproses dua kali.','Buat consumer idempoten, misalnya dengan menyimpan ID pesan yang sudah diproses.','Exactly-once end-to-end butuh kerja sama broker dan aplikasi.']},
+  {id:'r1',cat:'scale',t:'Rate limiting dengan token bucket',s:'Rate limit',lv:1,min:10,dg:'rate',d:'Melindungi API dari lonjakan dan penyalahgunaan dengan membatasi jumlah request per client.',p:['Token bucket mengizinkan burst singkat sambil menjaga rata-rata.','Kembalikan HTTP 429 dengan header Retry-After.','Di sistem terdistribusi, simpan penghitung di store bersama seperti Redis.']},
+  {id:'r2',cat:'scale',t:'API gateway',s:'Gateway',lv:1,min:9,dg:'gateway',d:'Satu pintu masuk untuk banyak layanan: routing, autentikasi, dan kebijakan lintas layanan di satu tempat.',p:['Klien cukup mengenal satu alamat.','Autentikasi, rate limit, dan logging dipusatkan di gateway.','Gateway sendiri harus diskalakan dan dipantau agar tidak menjadi bottleneck.']},
+  {id:'r3',cat:'scale',t:'Circuit breaker',s:'Circuit breaker',lv:2,min:11,dg:'gateway',d:'Mencegah kegagalan satu layanan menjalar ke seluruh sistem dengan memutus panggilan sementara.',p:['Tiga keadaan: closed, open, dan half-open.','Saat open, panggilan langsung gagal cepat tanpa menunggu timeout.','Half-open mengirim sedikit request percobaan untuk mengecek pemulihan.']},
+  {id:'r4',cat:'scale',t:'Teorema CAP',s:'CAP',lv:2,min:12,dg:'cap',d:'Saat jaringan terpartisi, sistem terdistribusi harus memilih antara konsistensi dan ketersediaan.',p:['Partisi jaringan pasti terjadi, jadi pilihan nyata adalah C atau A saat partisi.','Sistem CP menolak request demi data yang konsisten.','Sistem AP tetap melayani dan merekonsiliasi konflik belakangan.']},
+  {id:'k1',cat:'case',t:'Desain URL shortener',s:'URL shortener',lv:1,min:16,dg:'cache',d:'Studi kasus lengkap: membuat kode pendek unik, menyimpan jutaan tautan, dan melayani redirect dengan cepat.',p:['Trafik baca jauh lebih besar dari tulis, jadi cache adalah komponen kunci.','Kode pendek dibuat dari ID unik yang di-encode base62.','Redirect 301 vs 302 memengaruhi caching di browser dan analitik.']},
+  {id:'k2',cat:'case',t:'Desain sistem chat',s:'Chat',lv:2,min:18,dg:'pubsub',d:'Mengirim pesan real-time ke jutaan perangkat: koneksi WebSocket, fan-out pesan, dan status online.',p:['WebSocket menjaga koneksi dua arah tetap terbuka.','Pesan grup di-fan-out lewat pub/sub ke server yang memegang koneksi penerima.','Simpan pesan dengan urutan per percakapan, bukan urutan global.']},
+  {id:'k3',cat:'case',t:'Desain news feed',s:'News feed',lv:2,min:20,dg:'queue',d:'Menyusun linimasa untuk jutaan user: fan-out saat tulis vs saat baca, dan cara menangani akun dengan jutaan pengikut.',p:['Fan-out on write cepat dibaca tapi mahal untuk akun dengan jutaan pengikut.','Fan-out on read hemat tulis tapi lambat saat dibaca.','Pendekatan hibrida memperlakukan akun besar secara khusus.']},
+];
+
+/* ---------- Shared renderers ---------- */
+const nodeW = label => Math.max(72, Math.round(label.length * 5.4 + 18));
+function shapeSVG(type, x, y, w = 72, h = 28) {
+  const hw = w / 2, hh = h / 2;
+  if (type === 'db') return `<path class="shape" d="M${x - hw},${y - hh + 4}v${h - 8}a${hw},4 0 0 0 ${w},0v${-(h - 8)}a${hw},4 0 0 0 ${-w},0a${hw},4 0 0 0 ${w},0"/>`;
+  if (type === 'lb') return `<path class="shape" d="M${x - hw + 8},${y - hh}H${x + hw - 8}L${x + hw},${y}L${x + hw - 8},${y + hh}H${x - hw + 8}L${x - hw},${y}Z"/>`;
+  if (type === 'cdn') return `<ellipse class="shape" cx="${x}" cy="${y}" rx="${hw}" ry="${hh}"/>`;
+  const rx = type === 'client' || type === 'reject' ? hh : 5;
+  let s = `<rect class="shape" x="${x - hw}" y="${y - hh}" width="${w}" height="${h}" rx="${rx}"/>`;
+  if (type === 'queue') s += `<path class="slots" d="M${x + hw - 18},${y - 8}v16M${x + hw - 13},${y - 8}v16M${x + hw - 8},${y - 8}v16"/>`;
+  return s;
+}
+const parseFlow = f => { const bad = f[0] === '!', [a, b] = f.replace('!', '').split('>'); return {a, b, bad}; };
+function diagramSVG(id, thumb) {
+  const D = typeof id === 'string' ? DG[id] : id, P = Object.fromEntries(D.nodes.map(n => [n[0], n]));
+  const edges = D.edges.map(e => { const [a, b] = e.split('-'); return `<line class="edge" data-e="${e}" x1="${P[a][2]}" y1="${P[a][3]}" x2="${P[b][2]}" y2="${P[b][3]}"/>`; }).join('');
+  let pk = '';
+  if (thumb) {
+    const s = D.steps.reduce((m, s) => s.f.length > m.f.length ? s : m);
+    pk = s.f.map((f, i) => {
+      const {a, b, bad} = parseFlow(f), A = P[a], B = P[b], k = bad ? .55 : 1;
+      const x2 = A[2] + (B[2] - A[2]) * k, y2 = A[3] + (B[3] - A[3]) * k;
+      return [0, 1].map(j => `<circle r="3.6" class="pk${bad ? ' bad' : ''}" style="--x1:${A[2]}px;--y1:${A[3]}px;--x2:${x2}px;--y2:${y2}px;animation-delay:${-(j * .8 + i * .27).toFixed(2)}s"/>`).join('');
+    }).join('');
+  }
+  const nodes = D.nodes.map(([nid, type, x, y, label]) => `<g class="node" data-n="${nid}" style="--tc:var(${TYPES[type].v})">${shapeSVG(type, x, y, nodeW(label))}<text x="${x}" y="${y + (type === 'db' ? 5 : 3.5)}">${esc(label)}</text></g>`).join('');
+  return `<svg viewBox="0 0 320 180" class="${thumb ? 'dg' : 'dg stage'}" ${thumb ? 'aria-hidden="true"' : 'role="img" aria-label="Diagram animasi"'}><g>${edges}</g><g class="pk-layer">${pk}</g>${nodes}</svg>`;
+}
+function lvShape(lv, x, y, s, fill, stroke, sw) {
+  const a = `fill="${fill}" stroke="${stroke}" stroke-width="${sw}"`;
+  if (lv === 0) return `<circle cx="${x}" cy="${y}" r="${s}" ${a}/>`;
+  if (lv === 1) return `<circle cx="${x}" cy="${y}" r="${s}" ${a}/><circle cx="${x}" cy="${y}" r="${(s * .4).toFixed(1)}" fill="${stroke}"/>`;
+  const k = s * .82;
+  return `<rect x="${x - k}" y="${y - k}" width="${2 * k}" height="${2 * k}" rx="1.5" transform="rotate(45 ${x} ${y})" ${a}/>`;
+}
+const lvIcon = lv => `<svg class="lv" viewBox="0 0 16 16" aria-hidden="true">${lvShape(lv, 8, 8, 5, 'none', 'currentColor', 1.7)}</svg>`;
+const prog = id => store.s.progress[id] || 0;
+
+function cardHTML(l) {
+  const p = prog(l.id), saved = store.s.saved.includes(l.id);
+  return `<article class="card" style="--cat:var(${CAT[l.cat].v})">
+    <a class="thumb" href="#/l/${l.id}" tabindex="-1" aria-hidden="true">${diagramSVG(l.dg, true)}<span class="dur num">${l.min} mnt</span>${p ? `<span class="prog" style="--p:${p}"></span>` : ''}</a>
+    <div class="meta"><span class="card-line"></span><div><h3><a href="#/l/${l.id}">${esc(l.t)}</a></h3>
+      <p class="sub"><span>${CAT[l.cat].name}</span><span class="lvl">${lvIcon(l.lv)}${LV[l.lv]}</span>${p >= 1 ? '<span>Selesai</span>' : ''}</p></div>
+      <button class="save" data-save="${l.id}" aria-pressed="${saved}" aria-label="Simpan ${esc(l.t)}">${ico(I.bookmark)}</button></div>
+  </article>`;
+}
+
+function mapSVG() {
+  const gap = 40, top = 38, n = CATS.length, mid = top + gap * (n - 1) / 2, ox = 70, bend = 128, sx = 250, step = 160;
+  let lines = '', trains = '', st = '';
+  CATS.forEach((c, i) => {
+    const y = top + i * gap, yb = mid + (i - (n - 1) / 2) * 8, dy = Math.abs(y - yb), ls = L.filter(l => l.cat === c.id);
+    const end = sx + (ls.length - 1) * step + 44, d = `M${ox},${yb}H${bend}L${bend + dy},${y}H${end}`, col = `var(${c.v})`;
+    lines += `<path d="${d}" stroke="${col}" class="mline"/><text class="mname" x="${end + 14}" y="${y + 4.5}">${c.name}</text>`;
+    trains += `<rect class="train" x="-9" y="-4" width="18" height="8" rx="4" style="stroke:${col}"><animateMotion dur="${(13 + i * 1.3).toFixed(1)}s" begin="${-i * 2.3}s" repeatCount="indefinite" rotate="auto" keyPoints="0;1;0" keyTimes="0;.5;1" calcMode="linear" path="${d}"/></rect>`;
+    ls.forEach((l, j) => {
+      const x = sx + j * step, done = prog(l.id) >= 1;
+      st += `<a href="#/l/${l.id}" class="st${done ? ' done' : ''}" aria-label="${esc(l.t)}, ${LV[l.lv]}${done ? ', selesai' : ''}"><circle class="hit" cx="${x}" cy="${y}" r="13"/>${lvShape(l.lv, x, y, 6.5, done ? col : 'var(--surface)', 'var(--ink)', 2.2)}<text x="${x}" y="${y + 21}">${esc(l.s)}</text></a>`;
+    });
+  });
+  const span = (n - 1) * 8 + 18, w = Math.max(990, sx + (Math.max(...CATS.map(c => L.filter(l => l.cat === c.id).length)) - 1) * step + 230);
+  return `<svg class="map" viewBox="0 0 ${w} ${top * 2 + gap * (n - 1)}" style="min-width:${Math.round(w * .87)}px" role="group" aria-label="Peta belajar">${lines}<rect class="origin" x="${ox - 10}" y="${mid - span / 2}" width="20" height="${span}" rx="10"/><text class="mname mstart" x="${ox}" y="${mid - span / 2 - 10}">Mulai</text>${trains}${st}</svg>`;
+}
+
+/* ---------- Home ---------- */
+const F = {q: '', cat: 'all', lv: -1};
+let refreshGrid = null;
+function matches(l, saved) {
+  const q = F.q.trim().toLowerCase();
+  return (!saved || store.s.saved.includes(l.id)) && (F.cat === 'all' || l.cat === F.cat) && (F.lv < 0 || l.lv === F.lv)
+    && (!q || `${l.t} ${l.d} ${CAT[l.cat].name} ${l.p.join(' ')}`.toLowerCase().includes(q));
+}
+function viewHome(saved) {
+  const done = L.filter(l => prog(l.id) >= 1).length;
+  const legend = `<p class="legend">${LV.map((n, i) => `<span>${lvIcon(i)}${n}</span>`).join('')}<span><svg class="lv" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="currentColor"/></svg>Terisi berarti selesai</span></p>`;
+  view.innerHTML = (saved
+    ? `<header class="page-head"><h1>Disimpan</h1><p>Pelajaran yang kamu tandai untuk ditonton nanti.</p></header>`
+    : `<section class="hero"><div class="hero-head"><div><h1>Peta belajar system design</h1><p>Setiap garis adalah satu topik, setiap stasiun satu pelajaran animasi. Mulai dari kiri, atau turun di stasiun mana saja. Kamu sudah menyelesaikan ${done} dari ${L.length} pelajaran.</p></div>${legend}</div><div class="map-wrap">${mapSVG()}</div></section>`)
+    + `<div class="filters"><div class="chips" role="group" aria-label="Kategori"><button class="chip" data-cat="all">Semua</button>${CATS.map(c => `<button class="chip" data-line data-cat="${c.id}" style="--cat:var(${c.v})">${c.name}</button>`).join('')}</div>
+       <div class="seg-ctl" role="group" aria-label="Tingkat kesulitan"><button data-lv="-1">Semua tingkat</button>${LV.map((n, i) => `<button data-lv="${i}">${lvIcon(i)}${n}</button>`).join('')}</div></div>
+       <p class="count" aria-live="polite"></p><div class="grid"></div>`;
+  const grid = $('.grid', view), count = $('.count', view);
+  const touch = matchMedia('(hover: none)').matches && !reduced;
+  // Di layar sentuh tidak ada hover: putar thumbnail hanya untuk kartu yang sedang terlihat penuh.
+  const liveIO = touch ? new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('live', e.isIntersecting)), {threshold: .7}) : null;
+  function render() {
+    const list = L.filter(l => matches(l, saved)), total = saved ? store.s.saved.length : L.length;
+    $$('[data-cat]', view).forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === F.cat));
+    $$('[data-lv]', view).forEach(b => b.setAttribute('aria-pressed', +b.dataset.lv === F.lv));
+    count.textContent = list.length === total ? `${total} pelajaran` : `${list.length} dari ${total} pelajaran`;
+    const filtered = F.q || F.cat !== 'all' || F.lv >= 0;
+    grid.innerHTML = list.length ? list.map(cardHTML).join('')
+      : `<div class="empty">${saved && !filtered
+          ? '<p>Belum ada pelajaran yang disimpan. Tekan ikon penanda di kartu pelajaran untuk menyimpannya di sini.</p><a class="btn" href="#/">Jelajahi pelajaran</a>'
+          : `<p>Tidak ada pelajaran yang cocok${F.q ? ` dengan “${esc(F.q)}”` : ''}. Coba kata lain atau hapus filter.</p><button class="btn" data-clear>Hapus filter</button>`}</div>`;
+    if (liveIO) { liveIO.disconnect(); $$('.card', grid).forEach(c => liveIO.observe(c)); }
+  }
+  view.onclick = e => {
+    const c = e.target.closest('[data-cat]'), v = e.target.closest('[data-lv]');
+    if (c) F.cat = c.dataset.cat; else if (v) F.lv = +v.dataset.lv;
+    else if (e.target.closest('[data-clear]')) { F.q = ''; F.cat = 'all'; F.lv = -1; $('#q').value = ''; }
+    else return;
+    render();
+  };
+  render();
+  refreshGrid = render;
+  const map = $('.map', view);
+  let mapIO = null;
+  if (map) {
+    if (reduced) map.pauseAnimations();
+    else (mapIO = new IntersectionObserver(([e]) => e.isIntersecting ? map.unpauseAnimations() : map.pauseAnimations())).observe(map);
+  }
+  return () => { refreshGrid = null; view.onclick = null; liveIO?.disconnect(); mapIO?.disconnect(); };
+}
+
+/* ---------- Lesson player ---------- */
+const STEP = 6000;
+function mountPlayer(el, D, onStep) {
+  const steps = D.steps, total = steps.length * STEP, P = Object.fromEntries(D.nodes.map(n => [n[0], n]));
+  const layer = $('.pk-layer', el), segs = $$('.seg i', el), playBtn = $('[data-act=play]', el), timeEl = $('.time', el), spdBtn = $('.spd', el);
+  const pool = Array.from({length: 40}, () => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('r', '3.6'); c.setAttribute('class', 'pp'); c.style.display = 'none'; layer.append(c);
+    return {el: c, live: false, k: 0, f: null};
+  });
+  let t = 0, playing = false, speed = 1, cur = -1, raf = 0, last = 0, flows = [], lastSec = -1, autoPaused = false;
+
+  function clearPackets() { pool.forEach(p => { p.live = false; p.el.style.display = 'none'; }); }
+  function apply(i) {
+    cur = i; const s = steps[i];
+    flows = s.f.map(f => { const {a, b, bad} = parseFlow(f); return {A: P[a], B: P[b], bad, acc: 650 - Math.random() * 300}; });
+    const on = new Set(s.f.map(f => { const {a, b} = parseFlow(f); return D.edges.includes(`${a}-${b}`) ? `${a}-${b}` : `${b}-${a}`; }));
+    $$('.node', el).forEach(n => { n.classList.toggle('hl', (s.h || []).includes(n.dataset.n)); n.classList.toggle('down', (s.x || []).includes(n.dataset.n)); });
+    $$('.edge', el).forEach(e => { e.classList.toggle('on', on.has(e.dataset.e)); e.classList.toggle('cut', (s.cut || []).includes(e.dataset.e)); });
+    $('.cap b', el).textContent = `${i + 1}. ${s.t}`;
+    $('.cap span', el).textContent = s.d;
+    onStep(i, steps.length);
+  }
+  function spawn(f) {
+    const p = pool.find(p => !p.live); if (!p) return;
+    p.live = true; p.k = 0; p.f = f; p.el.style.display = ''; p.el.style.opacity = 1;
+    p.el.classList.toggle('bad', f.bad);
+  }
+  function draw(dt) {
+    for (const f of flows) { f.acc += dt; if (f.acc >= 650) { f.acc = 0; spawn(f); } }
+    for (const p of pool) {
+      if (!p.live) continue;
+      p.k += dt / 1100;
+      const lim = p.f.bad ? .55 : 1;
+      if (p.k >= lim) { p.live = false; p.el.style.display = 'none'; continue; }
+      const {A, B} = p.f;
+      p.el.setAttribute('transform', `translate(${A[2] + (B[2] - A[2]) * p.k} ${A[3] + (B[3] - A[3]) * p.k})`);
+      if (p.f.bad) p.el.style.opacity = Math.max(0, 1 - Math.max(0, p.k - .3) / .25);
+    }
+  }
+  function ui() {
+    segs.forEach((s, j) => { s.style.transform = `scaleX(${Math.min(1, Math.max(0, (t - j * STEP) / STEP))})`; });
+    const sec = Math.floor(t / 1000);
+    if (sec !== lastSec) { lastSec = sec; timeEl.textContent = `${mmss(t)} / ${mmss(total)}`; }
+  }
+  function frame(now) {
+    // Timestamp rAF bisa lebih awal dari performance.now() saat play(), jadi dt dijepit agar tidak negatif.
+    const dt = Math.max(0, Math.min(now - last, 50)) * speed; last = now;
+    t = Math.min(total, t + dt);
+    const i = Math.min(steps.length - 1, Math.floor(t / STEP));
+    if (i !== cur) apply(i);
+    draw(dt); ui();
+    if (t >= total) { pause(); onStep(steps.length, steps.length); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function setBtn() { playBtn.innerHTML = ico(playing ? I.pause : I.play); playBtn.setAttribute('aria-label', playing ? 'Jeda' : 'Putar'); }
+  function play() { if (playing) return; if (t >= total) { t = 0; clearPackets(); } playing = true; last = performance.now(); raf = requestAnimationFrame(frame); setBtn(); }
+  function pause() { playing = false; cancelAnimationFrame(raf); setBtn(); }
+  function seek(i) { i = Math.max(0, Math.min(steps.length - 1, i)); t = i * STEP; clearPackets(); apply(i); ui(); }
+
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.seek) seek(+b.dataset.seek);
+    else if (b.dataset.act === 'play') playing ? pause() : play();
+    else if (b.dataset.act === 'prev') seek(cur - 1);
+    else if (b.dataset.act === 'next') seek(cur + 1);
+    else if (b.dataset.act === 'speed') { speed = {0.5: 1, 1: 1.5, 1.5: 2, 2: 0.5}[speed]; spdBtn.textContent = `${speed.toLocaleString('id-ID')}×`; }
+  });
+  el.addEventListener('keydown', e => {
+    if (e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (e.key === ' ' || e.key === 'k') { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); seek(cur + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(cur - 1); }
+  });
+  // Berhenti saat player keluar layar, lanjut lagi saat kembali.
+  const io = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting && playing) { autoPaused = true; pause(); }
+    else if (e.isIntersecting && autoPaused) { autoPaused = false; play(); }
+  }, {threshold: .25});
+  io.observe(el);
+  seek(0); setBtn();
+  if (!reduced) play();
+  return {seek: i => { seek(i); play(); }, time: () => t, seekTime: ms => { t = Math.min(ms, total - 1); clearPackets(); apply(Math.floor(t / STEP)); ui(); }, destroy() { pause(); io.disconnect(); }};
+}
+
+function playerHTML(D) {
+  return `<section class="player" tabindex="0" aria-label="Pemutar animasi. Spasi untuk putar atau jeda, panah kiri dan kanan untuk pindah langkah.">
+      <div class="stage-wrap">${diagramSVG(D, false)}</div>
+      <div class="cap" aria-live="polite"><b></b><span></span></div>
+      <div class="ctrl">
+        <button class="ib" data-act="play" aria-label="Putar"></button>
+        <button class="ib" data-act="prev" aria-label="Langkah sebelumnya">${ico(I.prev)}</button>
+        <button class="ib" data-act="next" aria-label="Langkah berikutnya">${ico(I.next)}</button>
+        <div class="tl">${D.steps.map((s, i) => `<button class="seg" data-seek="${i}" aria-label="Langkah ${i + 1}: ${esc(s.t)}"><i></i></button>`).join('')}</div>
+        <span class="time num"></span>
+        <button class="ib spd" data-act="speed" aria-label="Ubah kecepatan">1×</button>
+      </div>
+    </section>`;
+}
+
+function nextHTML(l) {
+  return `<a class="next-item" href="#/l/${l.id}" style="--cat:var(${CAT[l.cat].v})"><span class="thumb">${diagramSVG(l.dg, true)}<span class="dur num">${l.min} mnt</span>${prog(l.id) ? `<span class="prog" style="--p:${prog(l.id)}"></span>` : ''}</span><span><b>${esc(l.t)}</b><span class="sub"><span>${CAT[l.cat].name}</span><span class="lvl">${lvIcon(l.lv)}${LV[l.lv]}</span></span></span></a>`;
+}
+
+function viewLesson(id) {
+  const l = L.find(x => x.id === id);
+  if (!l) { location.replace('#/'); return null; }
+  const D = DG[l.dg], c = CAT[l.cat], idx = L.indexOf(l), next = [...L.slice(idx + 1), ...L.slice(0, idx)].slice(0, 8);
+  const saved = store.s.saved.includes(l.id), done = prog(l.id) >= 1;
+  view.innerHTML = `<div class="watch" style="--cat:var(${c.v})"><div>
+    ${playerHTML(D)}
+    <h1 class="w-title">${esc(l.t)}</h1>
+    <div class="w-bar">
+      <p class="sub"><span class="line-tag">${c.name}</span><span class="lvl">${lvIcon(l.lv)}${LV[l.lv]}</span><span>${l.min} mnt</span></p>
+      <div class="w-actions">
+        <button class="btn" data-save="${l.id}" aria-pressed="${saved}">${ico(I.bookmark)}<span class="lbl">${saved ? 'Disimpan' : 'Simpan'}</span></button>
+        <button class="btn" data-done aria-pressed="${done}">${ico(I.check)}<span class="lbl">${done ? 'Selesai' : 'Tandai selesai'}</span></button>
+        <a class="btn pri" href="#/playground/${PRESET_OF[l.dg] || 'single'}">${ico(I.nodes)}Coba di playground</a>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Materi pelajaran">
+      <button class="tab" role="tab" id="t-a" aria-controls="p-a" aria-selected="true">Penjelasan</button>
+      <button class="tab" role="tab" id="t-b" aria-controls="p-b" aria-selected="false" tabindex="-1">Kuis</button>
+      <button class="tab" role="tab" id="t-c" aria-controls="p-c" aria-selected="false" tabindex="-1">Catatanku</button>
+    </div>
+    <div role="tabpanel" id="p-a" aria-labelledby="t-a" class="prose">
+      <p class="lead">${esc(l.d)}</p>
+      <h2>Poin kunci</h2><ul>${l.p.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h2>Contoh teknologi</h2><div class="kv">${[...new Set(D.nodes.map(n => n[1]))].filter(t => TYPES[t].tech).map(t => `<b>${TYPES[t].name}</b><span>${techOf(t)}</span>`).join('')}</div>
+      <h2>Langkah animasi</h2>
+      <ol class="steps">${D.steps.map((s, i) => `<li><button data-step="${i}"><span class="num">${mmss(i * STEP)}</span><b>${esc(s.t)}</b><span>${esc(s.d)}</span></button></li>`).join('')}</ol>
+    </div>
+    <div role="tabpanel" id="p-b" aria-labelledby="t-b" hidden>
+      <form class="quiz"><fieldset><legend>${esc(D.quiz.q)}</legend>${D.quiz.o.map((o, i) => `<label class="opt"><input type="radio" name="q" value="${i}"><span>${esc(o)}</span></label>`).join('')}</fieldset>
+      <button class="btn pri">Periksa jawaban</button><p class="qres" aria-live="polite"></p></form>
+    </div>
+    <div role="tabpanel" id="p-c" aria-labelledby="t-c" hidden>
+      <div class="mynotes"><label for="nt">Catatan di <span class="num nt-time">0:00</span></label>
+      <textarea id="nt" rows="3" placeholder="Tulis apa yang baru kamu pahami"></textarea>
+      <button class="btn pri" data-addnote>Simpan catatan</button><ul class="note-list"></ul></div>
+    </div>
+  </div>
+  <aside class="next" aria-label="Berikutnya di jalur"><h2>Berikutnya di jalur</h2><div class="next-list">${next.map(nextHTML).join('')}</div></aside></div>`;
+
+  const doneBtn = $('[data-done]', view);
+  function setDone(v) {
+    store.s.progress[l.id] = v; store.save();
+    doneBtn.setAttribute('aria-pressed', v >= 1); $('.lbl', doneBtn).textContent = v >= 1 ? 'Selesai' : 'Tandai selesai';
+  }
+  const player = mountPlayer($('.player', view), D, (i, n) => {
+    $$('.steps button', view).forEach((b, j) => j === i ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+    if (i / n > prog(l.id)) setDone(i / n);
+    $('.nt-time', view).textContent = mmss(i * STEP);
+  });
+  doneBtn.onclick = () => setDone(prog(l.id) >= 1 ? 0 : 1);
+  $('#p-a', view).onclick = e => { const b = e.target.closest('[data-step]'); if (b) { player.seek(+b.dataset.step); $('.player', view).scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block: 'center'}); } };
+
+  const tabs = $$('.tab', view);
+  const select = tab => tabs.forEach(t => { const on = t === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; $('#' + t.getAttribute('aria-controls')).hidden = !on; });
+  $('.tabs', view).onclick = e => { const t = e.target.closest('.tab'); if (t) select(t); };
+  $('.tabs', view).onkeydown = e => {
+    const i = tabs.indexOf(document.activeElement), d = {ArrowRight: 1, ArrowLeft: -1}[e.key];
+    if (i < 0 || !d) return;
+    const t = tabs[(i + d + tabs.length) % tabs.length]; select(t); t.focus();
+  };
+
+  $('.quiz', view).onsubmit = e => {
+    e.preventDefault();
+    const v = new FormData(e.target).get('q'), r = $('.qres', view);
+    if (v === null) { r.className = 'qres'; r.textContent = 'Pilih satu jawaban dulu.'; return; }
+    const ok = +v === D.quiz.a;
+    store.s.quiz[l.id] = ok; store.save();
+    r.className = 'qres ' + (ok ? 'ok' : 'no');
+    r.textContent = ok ? 'Benar. Jawabanmu tersimpan di progres pelajaran ini.' : 'Belum tepat. Tonton ulang langkah animasinya, lalu coba lagi.';
+  };
+
+  const notes = () => (store.s.notes[l.id] ||= []);
+  function renderNotes() {
+    const list = notes().slice().sort((a, b) => a.t - b.t);
+    $('.note-list', view).innerHTML = list.length ? list.map(n => `<li><button class="tlink num" data-t="${n.t}">${mmss(n.t)}</button><span>${esc(n.text)}</span><button class="btn ghost sm" data-del="${n.id}">Hapus</button></li>`).join('')
+      : '<li class="muted">Belum ada catatan. Jeda animasi di langkah mana pun lalu tulis apa yang kamu pahami.</li>';
+  }
+  $('#p-c', view).onclick = e => {
+    if (e.target.closest('[data-addnote]')) {
+      const ta = $('#nt', view), text = ta.value.trim();
+      if (!text) { ta.focus(); return; }
+      notes().push({id: Date.now().toString(36), t: Math.floor(player.time()), text}); store.save(); ta.value = ''; renderNotes();
+    }
+    const tl = e.target.closest('[data-t]'); if (tl) player.seekTime(+tl.dataset.t);
+    const del = e.target.closest('[data-del]');
+    if (del) { store.s.notes[l.id] = notes().filter(n => n.id !== del.dataset.del); store.save(); renderNotes(); }
+  };
+  renderNotes();
+  return () => player.destroy();
+}
+
+/* ---------- Playground ---------- */
+const PG = {
+  client: {cap: Infinity, ms: 0, cost: 0},
+  lb: {cap: 20000, ms: 1, cost: 20},
+  server: {cap: 1500, ms: 25, cost: 70},
+  cache: {cap: 25000, ms: 1, cost: 50, hit: .8},
+  db: {cap: 2500, ms: 12, cost: 200},
+  queue: {cap: 30000, ms: 2, cost: 30},
+  cdn: {cap: 200000, ms: 4, cost: 40, hit: .9},
+};
+const TERMINAL = new Set(['server', 'db']);
+const W = 900, H = 520, NW = 124, NH = 56;
+
+// shortcut: model aliran steady-state (bukan simulasi event diskret); cukup untuk intuisi, ganti dengan sim per-request untuk materi p99.
+function simulate(g, rps) {
+  const st = {}, kids = {}, indeg = {}, by = {};
+  g.nodes.forEach(n => { st[n.id] = {in: 0, drop: 0, backlog: 0, rho: 0}; kids[n.id] = []; indeg[n.id] = 0; by[n.id] = n; });
+  g.edges.forEach(([a, b]) => { kids[a].push(b); indeg[b]++; });
+  const order = [], q = g.nodes.filter(n => !indeg[n.id]).map(n => n.id);
+  while (q.length) { const id = q.shift(); order.push(id); kids[id].forEach(k => { if (!--indeg[k]) q.push(k); }); }
+  const clients = g.nodes.filter(n => n.type === 'client');
+  clients.forEach(n => { st[n.id].in = rps / clients.length; });
+  const edgeFlow = {};
+  for (const id of order) {
+    const n = by[id], s = st[id], ks = kids[id];
+    const served = Math.min(s.in, n.cap);
+    s.drop = s.in - served; s.rho = isFinite(n.cap) ? s.in / n.cap : 0;
+    const fwd = served * (1 - (n.hit || 0));
+    if (!ks.length) { if (!TERMINAL.has(n.type)) s.drop += fwd; continue; }
+    if (n.type === 'queue') {
+      // Queue hanya meneruskan sebanyak yang sanggup diproses worker; sisanya menumpuk, bukan ditolak.
+      const kcap = ks.reduce((a, k) => a + by[k].cap, 0), send = Math.min(fwd, kcap);
+      s.backlog = fwd - send;
+      ks.forEach(k => { const f = send * (isFinite(kcap) ? by[k].cap / kcap : 1 / ks.length); st[k].in += f; edgeFlow[id + '>' + k] = f; });
+    } else ks.forEach(k => { const f = fwd / ks.length; st[k].in += f; edgeFlow[id + '>' + k] = f; });
+  }
+  const Lt = {};
+  for (const id of [...order].reverse()) {
+    const n = by[id], ks = kids[id];
+    const own = PG[n.type].ms / (1 - Math.min(st[id].rho, .95));
+    const down = n.type === 'queue' || !ks.length ? 0 : ks.reduce((a, k) => a + Lt[k], 0) / ks.length;
+    Lt[id] = own + (1 - (n.hit || 0)) * down;
+  }
+  const drop = g.nodes.reduce((a, n) => a + st[n.id].drop, 0);
+  return {
+    st, edgeFlow, drop, ok: rps - drop, err: rps ? drop / rps : 0,
+    lat: clients.length ? clients.reduce((a, n) => a + Lt[n.id], 0) / clients.length : 0,
+    cost: g.nodes.reduce((a, n) => a + (isFinite(n.cap) ? PG[n.type].cost * n.cap / PG[n.type].cap : 0), 0),
+    backlog: g.nodes.reduce((a, n) => a + st[n.id].backlog, 0),
+  };
+}
+(function selfTest() {
+  const T = (types, edges, rps) => simulate({nodes: types.map((t, i) => ({id: 'n' + i, type: t, cap: PG[t].cap, hit: PG[t].hit})), edges: edges.map(([a, b]) => ['n' + a, 'n' + b])}, rps);
+  let r = T(['client', 'lb', 'server', 'server'], [[0, 1], [1, 2], [1, 3]], 2000);
+  console.assert(r.st.n2.in === 1000 && r.err === 0, 'sim: load balancer membagi rata');
+  r = T(['client', 'server'], [[0, 1]], 3000);
+  console.assert(r.drop === 1500 && r.err === .5, 'sim: server kelebihan beban menolak sisa');
+  r = T(['client', 'cache', 'db'], [[0, 1], [1, 2]], 1000);
+  console.assert(Math.abs(r.st.n2.in - 200) < 1e-9, 'sim: cache hit 80% menyisakan 20% ke database');
+  r = T(['client', 'queue', 'server'], [[0, 1], [1, 2]], 3000);
+  console.assert(r.st.n2.in === 1500 && r.backlog === 1500 && r.drop === 0, 'sim: queue menumpuk, tidak menolak');
+  r = T(['client', 'lb'], [[0, 1]], 100);
+  console.assert(r.drop === 100, 'sim: request ke jalan buntu dihitung hilang');
+})();
+
+function buildGraph(spec, links) {
+  const g = {nodes: [], edges: []};
+  spec.forEach(([type, x, y]) => g.nodes.push(mkNode(type, x, y, g)));
+  links.forEach(([a, b]) => g.edges.push([g.nodes[a].id, g.nodes[b].id]));
+  return g;
+}
+let nid = 0;
+function mkNode(type, x, y, g) {
+  const k = g.nodes.filter(n => n.type === type).length + 1;
+  return {id: type + ++nid, type, x, y, cap: PG[type].cap, hit: PG[type].hit, name: type === 'client' ? 'Client' : `${TYPES[type].name} ${k}`};
+}
+const PRESETS = {
+  single: {name: 'Satu server', build: () => buildGraph([['client', 90, 260], ['server', 450, 260], ['db', 800, 260]], [[0, 1], [1, 2]])},
+  lb: {name: 'Load balancer', build: () => buildGraph([['client', 80, 260], ['lb', 270, 260], ['server', 470, 110], ['server', 470, 260], ['server', 470, 410], ['db', 790, 260]], [[0, 1], [1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]])},
+  cache: {name: 'Dengan cache', build: () => buildGraph([['client', 70, 260], ['lb', 230, 260], ['server', 405, 110], ['server', 405, 260], ['server', 405, 410], ['cache', 605, 260], ['db', 805, 260]], [[0, 1], [1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5], [5, 6]])},
+  queue: {name: 'Queue dan worker', build: () => buildGraph([['client', 90, 260], ['lb', 300, 260], ['queue', 520, 260], ['server', 780, 150], ['server', 780, 370]], [[0, 1], [1, 2], [2, 3], [2, 4]])},
+  cdn: {name: 'CDN di depan', build: () => buildGraph([['client', 70, 260], ['cdn', 235, 260], ['lb', 405, 260], ['server', 590, 160], ['server', 590, 360], ['db', 805, 260]], [[0, 1], [1, 2], [2, 3], [2, 4], [3, 5], [4, 5]])},
+};
+const CHALLENGES = [
+  {name: 'Tahan 3.000 rps', d: 'Toko online kecil sedang promo. Layani 3.000 request per detik dengan sedikit kegagalan.', rps: 3000, err: .01, lat: 150, cost: Infinity},
+  {name: '10.000 rps dengan anggaran tipis', d: 'Sebagian besar trafik adalah halaman produk yang sama untuk semua user. Anggaran maksimal $800 per bulan.', rps: 10000, err: .01, lat: 100, cost: 800},
+  {name: 'Flash sale 25.000 rps', d: 'Terima semua pesanan tanpa menolak satu pun. Pemrosesan boleh tertunda.', rps: 25000, err: .001, lat: 60, cost: Infinity},
+];
+
+function viewPlayground(presetId) {
+  const pre = PRESETS[presetId] ? presetId : 'lb';
+  let g = PRESETS[pre].build(), rps = 3000, chal = 0, running = !reduced, sel = null, connecting = false, from = null;
+  let sim, packets = [], sparks = [], acc = [], raf = 0, last = 0, visible = true, drag = null, pointer = null, pal, scale = 1, dpr = 1;
+  const types = ['client', 'lb', 'server', 'cache', 'db', 'queue', 'cdn'];
+  view.innerHTML = `<div class="pg">
+    <header class="page-head"><h1>Playground</h1><p>Rakit arsitektur, alirkan trafik, lalu lihat komponen mana yang pertama kewalahan. Angka di sini adalah model sederhana untuk membangun intuisi, bukan benchmark.</p></header>
+    <div class="pg-bar">
+      <label class="fld">Mulai dari <select id="pg-preset">${Object.entries(PRESETS).map(([k, p]) => `<option value="${k}"${k === pre ? ' selected' : ''}>${p.name}</option>`).join('')}</select></label>
+      <label class="fld rps">Trafik <input id="pg-rps" type="range" min="100" max="30000" step="100" value="${rps}"><output id="pg-rps-out" class="num"></output></label>
+      <button class="btn" id="pg-run" aria-pressed="${running}"></button>
+      <button class="btn" id="pg-connect" aria-pressed="false">${ico(I.nodes)}Sambungkan</button>
+    </div>
+    <div class="pg-body">
+      <div class="palette" role="group" aria-label="Tambah komponen"><p class="lbl-s">Tambah komponen</p>${types.map(t => `<button class="pal" data-add="${t}"><svg viewBox="0 0 84 34" aria-hidden="true"><g class="node" style="--tc:var(${TYPES[t].v})">${shapeSVG(t, 42, 17, 76, 28)}</g></svg><span><b>${TYPES[t].name}</b><small class="num">${isFinite(PG[t].cap) ? `${fmt(PG[t].cap)} rps, $${PG[t].cost}/bln` : 'Sumber trafik'}</small></span></button>`).join('')}</div>
+      <div class="cv-wrap"><canvas id="pg-cv" aria-label="Kanvas arsitektur. Panel di kanan bisa dipakai untuk memilih dan menyambungkan komponen dengan keyboard."></canvas><p class="cv-hint" id="pg-hint"></p></div>
+      <div class="side">
+        <section class="panel" aria-labelledby="h-res"><h2 id="h-res">Hasil</h2><div class="metrics" id="pg-metrics" aria-live="polite"></div><p class="advice" id="pg-advice"></p></section>
+        <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan</h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul></section>
+        <section class="panel" id="pg-insp" aria-label="Pengaturan komponen"></section>
+      </div>
+    </div></div>`;
+  const cv = $('#pg-cv'), ctx = cv.getContext('2d'), wrap = $('.cv-wrap', view);
+  const byId = id => g.nodes.find(n => n.id === id);
+
+  function readPal() {
+    const cs = getComputedStyle(root), v = k => cs.getPropertyValue(k).trim();
+    pal = {ink: v('--ink'), ink2: v('--ink-2'), surface: v('--surface'), sunk: v('--sunk'), edge: v('--edge'), bad: v('--bad'), ok: v('--ok'), warn: v('--warn'), focus: v('--focus'), t: Object.fromEntries(types.map(t => [t, v(TYPES[t].v)]))};
+  }
+  function reach(a, b) { // apakah b bisa dicapai dari a
+    const seen = new Set([a]), st = [a];
+    while (st.length) { const x = st.pop(); if (x === b) return true; g.edges.forEach(([p, q]) => { if (p === x && !seen.has(q)) { seen.add(q); st.push(q); } }); }
+    return false;
+  }
+  const canLink = (a, b) => a !== b && b.type !== 'client' && !g.edges.some(([p, q]) => p === a.id && q === b.id) && !reach(b.id, a.id);
+
+  function recompute() {
+    sim = simulate(g, rps);
+    const C = CHALLENGES[chal];
+    $('#pg-rps-out').textContent = `${fmt(rps)} rps`;
+    $('#pg-metrics').innerHTML = [
+      ['Berhasil dilayani', `${fmt(sim.ok)} rps`, false],
+      ['Ditolak', pct(sim.err), sim.err > .01],
+      ['Latensi rata-rata', `${fmt(sim.lat)} ms`, sim.lat > 200],
+      ['Biaya', `$${fmt(sim.cost)}/bln`, false],
+    ].map(([k, v, bad]) => `<div class="metric${bad ? ' bad' : ''}"><b class="num">${v}</b><span>${k}</span></div>`).join('');
+    $('#pg-advice').textContent = advice();
+    $('#pg-chal-d').textContent = C.d;
+    const rows = [[`Trafik minimal ${fmt(C.rps)} rps`, rps >= C.rps], [`Ditolak paling banyak ${pct(C.err)}`, sim.err <= C.err], [`Latensi paling lama ${C.lat} ms`, sim.lat <= C.lat]];
+    if (isFinite(C.cost)) rows.push([`Biaya paling mahal $${fmt(C.cost)}/bln`, sim.cost <= C.cost]);
+    const win = rows.every(r => r[1]);
+    if (win && !store.s.chal[chal]) { store.s.chal[chal] = true; store.save(); }
+    $('#pg-checks').innerHTML = rows.map(([k, ok]) => `<li class="${ok ? 'pass' : 'fail'}">${ico(ok ? I.check : I.cross)}<span>${k}</span></li>`).join('') + (win ? '<li class="win">Tantangan selesai. Coba tantangan berikutnya.</li>' : '');
+    kick();
+  }
+  function advice() {
+    const kidsOf = id => g.edges.filter(e => e[0] === id);
+    const dead = g.nodes.find(n => !TERMINAL.has(n.type) && !kidsOf(n.id).length && sim.st[n.id].in > 0);
+    if (dead) return `${dead.name} tidak tersambung ke mana pun, jadi request yang sampai di sana hilang. Sambungkan ke komponen berikutnya.`;
+    const worst = g.nodes.filter(n => isFinite(n.cap)).sort((a, b) => sim.st[b.id].rho - sim.st[a.id].rho)[0];
+    if (worst && sim.st[worst.id].rho > 1) {
+      const s = sim.st[worst.id], base = `${worst.name} menerima ${fmt(s.in)} rps, padahal kapasitasnya ${fmt(worst.cap)}.`;
+      return base + ({server: ' Tambah server di belakang load balancer.', db: ' Pasang cache di depannya atau naikkan kapasitasnya.', lb: ' Tambah load balancer kedua atau naikkan kapasitasnya.'}[worst.type] || ' Naikkan kapasitasnya.');
+    }
+    if (sim.backlog > 0) return `Antrean bertambah ${fmt(sim.backlog)} pesan per detik. Tidak ada yang ditolak, tapi tambah worker agar antrean tidak menumpuk selamanya.`;
+    if (worst && sim.st[worst.id].rho > .8) return `${worst.name} bekerja di ${pct(sim.st[worst.id].rho)} kapasitas. Latensi mulai naik tajam di atas 80%.`;
+    return 'Semua komponen sehat. Naikkan trafik untuk mencari batasnya.';
+  }
+
+  function renderInspector() {
+    const opts = g.nodes.map(n => `<option value="${n.id}"${n === sel ? ' selected' : ''}>${esc(n.name)}</option>`).join('');
+    const pick = `<label class="fld-col" style="margin-top:0">Pilih komponen<select id="pg-sel"><option value="">Belum ada yang dipilih</option>${opts}</select></label>`;
+    if (!sel) { $('#pg-insp').innerHTML = `<h2>Komponen</h2>${pick}<p class="muted" style="margin-top:10px;font-size:13.5px">Klik komponen di kanvas atau pilih dari daftar untuk mengatur kapasitas dan sambungannya.</p>`; return; }
+    const base = PG[sel.type], outs = g.edges.filter(e => e[0] === sel.id).map(e => byId(e[1]));
+    const cands = g.nodes.filter(n => canLink(sel, n));
+    $('#pg-insp').innerHTML = `<h2>${esc(sel.name)}</h2><p class="muted tech-ex">Contoh: ${techOf(sel.type)}</p>${pick}
+      ${isFinite(sel.cap) ? `<label class="fld-col">Kapasitas<output id="pg-cap-out" class="num">${fmt(sel.cap)} rps</output><input id="pg-cap" type="range" min="${base.cap * .5}" max="${base.cap * 4}" step="${base.cap * .25}" value="${sel.cap}"></label>` : ''}
+      ${sel.hit != null ? `<label class="fld-col">Hit rate<output id="pg-hit-out" class="num">${pct(sel.hit)}</output><input id="pg-hit" type="range" min="0" max=".99" step=".01" value="${sel.hit}"></label>` : ''}
+      <p class="lbl-s" style="margin-top:14px">Mengirim ke</p>
+      <ul class="conns">${outs.length ? outs.map(n => `<li>${esc(n.name)}<button class="btn ghost sm" data-unlink="${n.id}">Putuskan</button></li>`).join('') : '<li class="muted">Belum ada sambungan</li>'}</ul>
+      ${cands.length ? `<label class="fld-col">Sambungkan ke<select id="pg-link"><option value="">Pilih tujuan</option>${cands.map(n => `<option value="${n.id}">${esc(n.name)}</option>`).join('')}</select></label>` : ''}
+      <button class="btn" id="pg-del">Hapus komponen</button>`;
+  }
+  function graphChanged() { packets = []; acc = g.edges.map(() => 0); renderInspector(); recompute(); }
+  function setHint() {
+    $('#pg-hint').textContent = connecting ? (from ? `Klik komponen tujuan untuk ${from.name}. Tekan Esc untuk batal.` : 'Mode sambung: klik komponen asal, lalu komponen tujuan.') : 'Seret komponen untuk memindahkan. Klik untuk memilih.';
+    cv.classList.toggle('connecting', connecting);
+  }
+  function setRun() { const b = $('#pg-run'); b.setAttribute('aria-pressed', running); b.innerHTML = ico(running ? I.pause : I.play) + (running ? 'Jeda' : 'Jalankan'); }
+
+  /* drawing */
+  function draw(dt) {
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    g.edges.forEach(([a, b], i) => {
+      const A = byId(a), B = byId(b), f = sim.edgeFlow[a + '>' + b] || 0;
+      ctx.strokeStyle = f ? pal.ink2 : pal.edge; ctx.lineWidth = 1.5 + Math.min(4, f / 2500);
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      ctx.save(); ctx.translate((A.x + B.x) / 2, (A.y + B.y) / 2); ctx.rotate(Math.atan2(B.y - A.y, B.x - A.x));
+      ctx.fillStyle = f ? pal.ink2 : pal.edge; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -6); ctx.lineTo(-5, 6); ctx.fill(); ctx.restore();
+      acc[i] += dt / 1000 * Math.min(f / 120, 28); // laju visual dibatasi, bukan 1 titik per request
+      while (acc[i] >= 1 && packets.length < 500) { acc[i]--; packets.push({i, k: 0, len: Math.hypot(B.x - A.x, B.y - A.y)}); }
+      acc[i] %= 1;
+    });
+    ctx.fillStyle = pal.ink;
+    let w = 0;
+    for (const p of packets) {
+      p.k += dt * .32 / p.len;
+      const e = g.edges[p.i]; if (p.k >= 1 || !e) continue;
+      const A = byId(e[0]), B = byId(e[1]);
+      ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * p.k, A.y + (B.y - A.y) * p.k, 3.5, 0, 6.283); ctx.fill();
+      packets[w++] = p;
+    }
+    packets.length = w;
+    g.nodes.forEach(n => {
+      const d = sim.st[n.id].drop;
+      if (d > 0 && dt) { n._s = (n._s || 0) + dt / 1000 * Math.min(d / 80, 30); while (n._s >= 1 && sparks.length < 160) { n._s--; sparks.push({x: n.x + NW / 2 - 8, y: n.y - NH / 2 + 6, vx: .04 + Math.random() * .08, vy: -.08 - Math.random() * .06, life: 1}); } }
+    });
+    ctx.fillStyle = pal.bad;
+    w = 0;
+    for (const s of sparks) {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.vy += .0005 * dt; s.life -= dt / 700;
+      if (s.life <= 0) continue;
+      ctx.globalAlpha = s.life; ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, 6.283); ctx.fill();
+      sparks[w++] = s;
+    }
+    sparks.length = w; ctx.globalAlpha = 1;
+    g.nodes.forEach(drawNode);
+    if (connecting && from && pointer) {
+      ctx.setLineDash([6, 6]); ctx.strokeStyle = pal.focus; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(pointer.x, pointer.y); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  function drawNode(n) {
+    const s = sim.st[n.id], x = n.x - NW / 2, y = n.y - NH / 2, col = pal.t[n.type], active = n === sel || n === from;
+    ctx.beginPath(); ctx.roundRect(x, y, NW, NH, n.type === 'client' ? NH / 2 : 9);
+    ctx.fillStyle = pal.surface; ctx.fill();
+    ctx.lineWidth = active ? 3 : 2; ctx.strokeStyle = active ? pal.focus : col; ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x + 16, y + 17, 4.5, 0, 6.283); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.font = '700 13px Overpass, system-ui, sans-serif'; ctx.textBaseline = 'middle';
+    ctx.fillText(n.name, x + 27, y + 18);
+    ctx.font = '600 11.5px Overpass, system-ui, sans-serif';
+    const sub = n.type === 'client' ? `${short(rps)} rps keluar` : s.backlog > 0 ? `antre +${short(s.backlog)}/dtk` : `${short(s.in)} / ${short(n.cap)} rps`;
+    ctx.fillStyle = s.rho > 1 ? pal.bad : pal.ink2; ctx.fillText(sub, x + 14, y + 35);
+    if (isFinite(n.cap)) {
+      ctx.fillStyle = pal.sunk; ctx.fillRect(x + 14, y + NH - 10, NW - 28, 4);
+      ctx.fillStyle = s.rho > 1 ? pal.bad : s.rho > .8 ? pal.warn : pal.ok;
+      ctx.fillRect(x + 14, y + NH - 10, (NW - 28) * Math.min(1, s.rho), 4);
+    }
+  }
+  function tick(now) {
+    raf = 0;
+    const dt = running ? Math.max(0, Math.min(now - last, 50)) : 0; last = now;
+    draw(dt);
+    if (running && visible) raf = requestAnimationFrame(tick);
+  }
+  // Satu loop saja; saat dijeda kanvas hanya digambar ulang ketika ada perubahan.
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } }
+
+  function resize() {
+    const w = wrap.clientWidth; dpr = Math.min(devicePixelRatio || 1, 2); scale = w / W;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(w * H / W * dpr); cv.style.height = `${w * H / W}px`;
+    kick();
+  }
+  const toWorld = e => { const r = cv.getBoundingClientRect(); return {x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H}; };
+  const hit = p => { for (let i = g.nodes.length - 1; i >= 0; i--) { const n = g.nodes[i]; if (Math.abs(p.x - n.x) <= NW / 2 && Math.abs(p.y - n.y) <= NH / 2) return n; } return null; };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  cv.onpointerdown = e => {
+    const p = toWorld(e), n = hit(p);
+    if (connecting) {
+      if (!n) { from = null; }
+      else if (!from) from = n;
+      else { if (canLink(from, n)) { g.edges.push([from.id, n.id]); sel = from; graphChanged(); } from = null; }
+      setHint(); kick(); return;
+    }
+    sel = n; renderInspector();
+    if (n) { drag = {n, dx: p.x - n.x, dy: p.y - n.y}; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; }
+    kick();
+  };
+  cv.onpointermove = e => {
+    pointer = toWorld(e);
+    if (drag) { drag.n.x = clamp(pointer.x - drag.dx, NW / 2, W - NW / 2); drag.n.y = clamp(pointer.y - drag.dy, NH / 2, H - NH / 2); packets = []; kick(); }
+    else if (connecting && from) kick();
+  };
+  cv.onpointerup = () => { drag = null; cv.style.cursor = ''; };
+  const onKey = e => {
+    if (e.key === 'Escape' && connecting) { connecting = false; from = null; $('#pg-connect').setAttribute('aria-pressed', false); setHint(); kick(); }
+  };
+  addEventListener('keydown', onKey);
+
+  view.onclick = e => {
+    const add = e.target.closest('[data-add]');
+    if (add) {
+      const k = g.nodes.length;
+      const n = mkNode(add.dataset.add, 120 + (k * 97) % 660, 70 + (k * 61) % 380, g);
+      g.nodes.push(n); sel = n; graphChanged(); return;
+    }
+    const un = e.target.closest('[data-unlink]');
+    if (un) { g.edges = g.edges.filter(([a, b]) => !(a === sel.id && b === un.dataset.unlink)); graphChanged(); return; }
+    if (e.target.closest('#pg-del') && sel) { g.edges = g.edges.filter(([a, b]) => a !== sel.id && b !== sel.id); g.nodes = g.nodes.filter(n => n !== sel); sel = null; graphChanged(); return; }
+    if (e.target.closest('#pg-run')) { running = !running; setRun(); kick(); return; }
+    if (e.target.closest('#pg-connect')) { connecting = !connecting; from = null; $('#pg-connect').setAttribute('aria-pressed', connecting); setHint(); kick(); }
+  };
+  view.oninput = e => {
+    const t = e.target;
+    if (t.id === 'pg-rps') { rps = +t.value; recompute(); }
+    else if (t.id === 'pg-cap') { sel.cap = +t.value; $('#pg-cap-out').textContent = `${fmt(sel.cap)} rps`; recompute(); }
+    else if (t.id === 'pg-hit') { sel.hit = +t.value; $('#pg-hit-out').textContent = pct(sel.hit); recompute(); }
+  };
+  view.onchange = e => {
+    const t = e.target;
+    if (t.id === 'pg-preset') { g = PRESETS[t.value].build(); sel = null; from = null; graphChanged(); history.replaceState(null, '', `#/playground/${t.value}`); }
+    else if (t.id === 'pg-sel') { sel = byId(t.value) || null; renderInspector(); kick(); $('#pg-sel')?.focus(); }
+    else if (t.id === 'pg-link' && t.value) { g.edges.push([sel.id, t.value]); graphChanged(); $('#pg-link')?.focus(); }
+    else if (t.id === 'pg-chal') { chal = +t.value; rps = CHALLENGES[chal].rps; $('#pg-rps').value = rps; recompute(); }
+  };
+
+  const onTheme = () => { readPal(); kick(); };
+  addEventListener('themechange', onTheme);
+  const ro = new ResizeObserver(resize); ro.observe(wrap);
+  const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); }); io.observe(cv);
+  readPal(); setRun(); setHint(); graphChanged(); resize();
+  document.fonts?.ready.then(kick);
+  return () => { cancelAnimationFrame(raf); raf = -1; ro.disconnect(); io.disconnect(); removeEventListener('keydown', onKey); removeEventListener('themechange', onTheme); view.onclick = view.oninput = view.onchange = null; };
+}
+
+/* ---------- Design system ---------- */
+function viewDesign() {
+  const sw = (v, name, use) => `<div class="sw"><i style="--v:var(${v})"></i><div><b>${name}</b><code data-var="${v}"></code><br><span class="muted" style="font-size:12.5px">${use}</span></div></div>`;
+  const motion = [['--t-fast', '120 ms', 'Hover, tekan tombol, ganti warna chip'], ['--t-med', '220 ms', 'Ganti tab, highlight node di langkah baru'], ['Paket per hop', '1.100 ms, linear', 'Kecepatan data harus konstan agar mata bisa mengikuti'], ['Langkah animasi', '6 detik', 'Cukup untuk membaca caption satu sampai dua kalimat'], ['Kereta di peta', '13–21 detik', 'Gerak latar paling lambat, berhenti saat peta keluar layar']];
+  view.innerHTML = `<div class="ds">
+    <header class="page-head"><h1>Sistem desain Alur</h1><p>Token, komponen, dan aturan gerak yang dipakai di seluruh aplikasi. Bahasa visualnya diambil dari peta transit: setiap topik adalah garis berwarna, setiap pelajaran adalah stasiun.</p></header>
+    <section><h2>Prinsip</h2><p class="intro">Tiga aturan yang dipakai untuk memutuskan setiap detail.</p><div class="princ">
+      <div style="--cat:var(--c-fondasi)"><b>Gerak menjelaskan, bukan menghias</b><p>Setiap animasi menggambarkan data yang berpindah. Gerakan yang tidak mewakili request, pesan, atau perubahan state dihapus.</p></div>
+      <div style="--cat:var(--c-cache)"><b>Garis adalah topik</b><p>Warna hanya dipakai untuk kategori dan status, sehingga mata belajar membaca warna sebagai informasi.</p></div>
+      <div style="--cat:var(--c-msg)"><b>Diam sampai diminta</b><p>Thumbnail bergerak saat disorot, pemutar berhenti saat keluar layar. Ratusan kartu tidak berarti ratusan animasi berjalan.</p></div></div></section>
+    <section><h2>Warna dasar</h2><p class="intro">Netral yang dingin seperti ubin stasiun, agar warna garis topik menonjol. Semua punya pasangan mode gelap.</p><div class="sw-grid">
+      ${sw('--paper', 'Paper', 'Latar halaman')}${sw('--surface', 'Surface', 'Kartu, panel, player')}${sw('--sunk', 'Sunk', 'Chip, track, hover')}${sw('--ink', 'Ink', 'Teks utama, paket data')}${sw('--ink-2', 'Ink 2', 'Teks sekunder')}${sw('--rule', 'Rule', 'Garis pemisah')}</div></section>
+    <section><h2>Garis topik</h2><p class="intro">Satu warna per kategori. Dipakai di peta, garis kartu, chip, progres, dan warna tipe komponen di diagram.</p><div class="sw-grid">
+      ${CATS.map(c => sw(c.v, c.name, `Komponen: ${Object.values(TYPES).filter(t => t.v === c.v).map(t => t.name).join(', ') || 'umum'}`)).join('')}</div></section>
+    <section><h2>Status</h2><div class="sw-grid">${sw('--ok', 'Sehat', 'Utilisasi di bawah 80%, kuis benar')}${sw('--warn', 'Waspada', 'Utilisasi 80–100%')}${sw('--bad', 'Gagal', 'Request ditolak, paket gagal')}</div></section>
+    <section><h2>Bentuk stasiun</h2><p class="intro">Tingkat kesulitan dibedakan oleh bentuk, bukan warna, sehingga tetap terbaca oleh pengguna buta warna. Bentuk terisi berarti selesai.</p>
+      <div class="row">${LV.map((n, i) => `<span class="btn" style="cursor:default"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">${lvShape(i, 11, 11, 7, 'var(--surface)', 'var(--ink)', 2.2)}</svg>${n}</span><span class="btn" style="cursor:default"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">${lvShape(i, 11, 11, 7, 'var(--c-fondasi)', 'var(--ink)', 2.2)}</svg>${n}, selesai</span>`).join('')}</div></section>
+    <section><h2>Komponen sistem</h2><p class="intro">Setiap tipe punya bentuk dan warna sendiri, sama di thumbnail, pemutar, dan playground.</p><div class="node-grid">
+      ${Object.entries(TYPES).map(([k, t]) => `<figure><svg viewBox="0 0 100 40" aria-hidden="true"><g class="node" style="--tc:var(${t.v})">${shapeSVG(k, 50, 20, 84, 30)}</g></svg><figcaption>${t.name}${t.tech ? `<small>${techOf(k)}</small>` : ''}</figcaption></figure>`).join('')}</div></section>
+    <section><h2>Tipografi</h2><p class="intro">Overpass, turunan Highway Gothic, huruf rambu jalan. Satu keluarga untuk semua teks; Overpass Mono hanya untuk kode dan token.</p>
+      <div class="type-row"><small>Display 42/45, 800</small><span style="font-size:42px;font-weight:800;letter-spacing:-.025em;line-height:1.08">Peta belajar</span></div>
+      <div class="type-row"><small>Judul 28/34, 800</small><span style="font-size:28px;font-weight:800;letter-spacing:-.015em">Pola cache-aside</span></div>
+      <div class="type-row"><small>Subjudul 17/24, 800</small><span style="font-size:17px;font-weight:800">Poin kunci</span></div>
+      <div class="type-row"><small>Isi 15/24, 400</small><span>Aplikasi memeriksa cache lebih dulu, membaca database saat miss, lalu mengisi cache.</span></div>
+      <div class="type-row"><small>Kecil 13.5/20, 600</small><span style="font-size:13.5px;font-weight:600;color:var(--ink-2)">Caching, Pemula, 9 mnt</span></div>
+      <div class="type-row"><small>Kode 13, Mono</small><code style="font-family:var(--mono);font-size:13px">SET user:42 "{...}" EX 300</code></div></section>
+    <section><h2>Ruang dan sudut</h2><p class="intro">Skala ruang kelipatan 4. Radius mengikuti hierarki: makin besar wadahnya, makin besar sudutnya.</p>
+      <div class="spc">${[4, 8, 12, 16, 24, 32, 48].map(s => `<div><i style="width:${s}px;height:${s}px"></i>${s}</div>`).join('')}</div>
+      <div class="kv" style="margin-top:16px"><code>--r-s 6px</code><span>Input, select, badge durasi</span><code>--r-m 10px</code><span>Thumbnail, item daftar</span><code>--r-l 16px</code><span>Player, panel, peta</span><code>999px</code><span>Tombol dan chip</span></div></section>
+    <section><h2>Gerak</h2><p class="intro">Hanya transform dan opacity yang dianimasikan, sehingga browser bisa mengerjakannya tanpa menghitung ulang layout.</p>
+      <div class="kv">${motion.map(([k, v, u]) => `<code>${k}</code><span><b style="color:var(--ink)">${v}</b>. ${u}</span>`).join('')}</div></section>
+    <section><h2>Aturan performa animasi</h2><ol class="rules">
+      <li>Animasi adalah data (node, edge, langkah), bukan video. Satu pelajaran sekitar 2 KB JSON, bukan 20 MB MP4.</li>
+      <li>Thumbnail memakai animasi CSS yang dijeda. Hanya kartu yang disorot atau difokus yang berjalan; di layar sentuh hanya kartu yang terlihat penuh.</li>
+      <li>Pemutar dan playground masing-masing punya satu loop requestAnimationFrame, berhenti saat dijeda, saat tab tersembunyi, dan saat keluar layar.</li>
+      <li>Paket data diambil dari pool elemen yang dipakai ulang; tidak ada elemen baru yang dibuat per frame.</li>
+      <li>Playground menggambar ke canvas dan membatasi jumlah titik visual (500 paket, 160 percikan), berapa pun trafik yang disimulasikan.</li>
+      <li>Kartu memakai content-visibility: auto agar kartu di luar layar tidak dirender.</li>
+      <li>prefers-reduced-motion: kereta di peta disembunyikan, thumbnail diam, pemutar tidak autoplay.</li></ol></section>
+    <section><h2>Komponen antarmuka</h2><p class="intro">Tombol, chip, dan kartu yang sama dengan yang dipakai di aplikasi.</p>
+      <div class="row" style="margin-bottom:16px"><button class="btn pri">${ico(I.nodes)}Coba di playground</button><button class="btn">${ico(I.bookmark)}Simpan</button><button class="btn" aria-pressed="true">${ico(I.check)}Selesai</button><button class="btn ghost">Batal</button></div>
+      <div class="chips" style="margin-bottom:16px"><button class="chip" aria-pressed="true">Semua</button>${CATS.slice(0, 4).map(c => `<button class="chip" data-line style="--cat:var(${c.v})">${c.name}</button>`).join('')}</div>
+      <div class="seg-ctl" style="margin-bottom:20px"><button aria-pressed="true">Semua tingkat</button>${LV.map((n, i) => `<button>${lvIcon(i)}${n}</button>`).join('')}</div>
+      <div class="grid" style="max-width:900px">${[L[11], L[17], L[9]].map(cardHTML).join('')}</div></section>
+  </div>`;
+  const cs = getComputedStyle(root);
+  $$('[data-var]', view).forEach(c => { c.textContent = cs.getPropertyValue(c.dataset.var).trim().toUpperCase(); });
+  const onTheme = () => { const cs = getComputedStyle(root); $$('[data-var]', view).forEach(c => { c.textContent = cs.getPropertyValue(c.dataset.var).trim().toUpperCase(); }); };
+  addEventListener('themechange', onTheme);
+  return () => removeEventListener('themechange', onTheme);
+}
+
+/* ---------- Akun & konten ---------- */
+// Tanpa config.js berisi Supabase, aplikasi jalan dalam mode demo: admin terbuka dan perubahan hanya disimpan di browser ini.
+const CFG = window.ALUR_CONFIG || {};
+const SB_ON = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+const auth = {sb: null, user: null, admin: !SB_ON};
+const BUILTIN = structuredClone({L, DG});
+
+function checkDiagram(d) {
+  const e = [];
+  if (!d || typeof d !== 'object' || !Array.isArray(d.nodes) || !d.nodes.length) return ['"nodes" harus berisi minimal satu node.'];
+  const ids = new Set();
+  d.nodes.forEach((n, i) => {
+    if (!Array.isArray(n) || n.length !== 5) return e.push(`Node ${i + 1}: format harus [id, tipe, x, y, label].`);
+    const [id, t, x, y, lb] = n;
+    if (!/^\w+$/.test(id) || ids.has(id)) e.push(`Node ${i + 1}: id "${id}" kosong, tidak valid, atau dobel.`);
+    if (!Object.hasOwn(TYPES, t)) e.push(`Node ${id}: tipe "${t}" tidak dikenal. Pilih: ${Object.keys(TYPES).join(', ')}.`);
+    if (!(x >= 0 && x <= 320 && y >= 0 && y <= 180)) e.push(`Node ${id}: x harus 0–320 dan y 0–180.`);
+    if (typeof lb !== 'string' || !lb.trim() || lb.length > 24) e.push(`Node ${id}: label wajib, maksimal 24 huruf.`);
+    ids.add(id);
+  });
+  const pair = (v, sep) => { if (typeof v !== 'string') return false; const [a, b, ...rest] = v.replace(/^!/, '').split(sep); return !rest.length && ids.has(a) && ids.has(b); };
+  if (!Array.isArray(d.edges) || !d.edges.every(x => pair(x, '-'))) e.push('"edges": setiap edge berbentuk "a-b" dengan id node yang ada.');
+  if (!Array.isArray(d.steps) || !d.steps.length || d.steps.length > 12) e.push('"steps" harus berisi 1–12 langkah.');
+  else d.steps.forEach((s, i) => {
+    if (!s || typeof s.t !== 'string' || !s.t.trim() || typeof s.d !== 'string' || !s.d.trim()) e.push(`Langkah ${i + 1}: "t" (judul) dan "d" (caption) wajib diisi.`);
+    if (!Array.isArray(s?.f) || !s.f.every(x => pair(x, '>'))) e.push(`Langkah ${i + 1}: "f" berisi aliran "a>b" (awalan ! = gagal).`);
+    else if (!s.f.every(x => { const {a, b} = parseFlow(x); return d.edges?.includes(`${a}-${b}`) || d.edges?.includes(`${b}-${a}`); })) e.push(`Langkah ${i + 1}: setiap aliran di "f" harus melewati edge yang ada.`);
+    ['h', 'x'].forEach(k => { if (s?.[k] != null && (!Array.isArray(s[k]) || !s[k].every(id => ids.has(id)))) e.push(`Langkah ${i + 1}: "${k}" berisi id node.`); });
+    if (s?.cut != null && (!Array.isArray(s.cut) || !s.cut.every(x => d.edges?.includes(x)))) e.push(`Langkah ${i + 1}: "cut" berisi edge yang ada.`);
+  });
+  const q = d.quiz;
+  if (!q || typeof q.q !== 'string' || !q.q.trim() || !Array.isArray(q.o) || q.o.length < 2 || !q.o.every(o => typeof o === 'string' && o.trim()) || !Number.isInteger(q.a) || q.a < 0 || q.a >= q.o.length)
+    e.push('"quiz" butuh "q" (pertanyaan), "o" (minimal 2 pilihan), dan "a" (indeks jawaban benar, mulai 0).');
+  return e;
+}
+function checkLesson(l, dgs) {
+  const e = [];
+  if (!/^[a-z0-9_]{1,20}$/.test(l.id)) e.push('ID hanya huruf kecil, angka, dan garis bawah (maksimal 20).');
+  if (!l.t?.trim() || l.t.length > 80) e.push('Judul wajib, maksimal 80 huruf.');
+  if (!l.s?.trim() || l.s.length > 24) e.push('Nama stasiun wajib, maksimal 24 huruf.');
+  if (!Object.hasOwn(CAT, l.cat)) e.push('Pilih kategori.');
+  if (![0, 1, 2].includes(l.lv)) e.push('Pilih tingkat kesulitan.');
+  if (!Number.isInteger(l.min) || l.min < 1 || l.min > 120) e.push('Durasi 1–120 menit.');
+  if (!Object.hasOwn(dgs, l.dg)) e.push('Pilih animasi.');
+  if (!l.d?.trim()) e.push('Deskripsi wajib diisi.');
+  if (!Array.isArray(l.p) || !l.p.length || !l.p.every(x => typeof x === 'string' && x.trim())) e.push('Tulis minimal satu poin kunci.');
+  return e;
+}
+// Konten dari luar (localStorage atau database) dipakai hanya jika seluruhnya lolos validasi.
+function useContent(lessons, dgs) {
+  if (!Array.isArray(lessons) || !lessons.length || !dgs || Object.values(dgs).some(d => checkDiagram(d).length) || lessons.some(l => checkLesson(l, dgs).length)) return false;
+  const copy = {...dgs}; // dgs bisa jadi DG itu sendiri
+  L.splice(0, L.length, ...lessons);
+  Object.keys(DG).forEach(k => delete DG[k]); Object.assign(DG, copy);
+  return true;
+}
+if (!SB_ON) { try { const c = JSON.parse(localStorage.getItem('alur-content')); if (c) useContent(c.L, c.DG); } catch {} }
+
+// Simpan seluruh konten sekaligus; sukses dulu baru diterapkan, jadi kegagalan jaringan tidak meninggalkan setengah perubahan.
+// shortcut: menulis ulang semua baris (±40) setiap simpan, ganti dengan upsert per baris jika konten sudah ratusan.
+async function saveContent(lessons, dgs) {
+  if (auth.sb) {
+    const sb = auth.sb;
+    const [rl, rd] = await Promise.all([sb.from('lessons').select('id'), sb.from('diagrams').select('id')]);
+    if (rl.error || rd.error) throw rl.error || rd.error;
+    let r = await sb.from('diagrams').upsert(Object.entries(dgs).map(([id, data]) => ({id, data})));
+    if (r.error) throw r.error;
+    r = await sb.from('lessons').upsert(lessons.map((l, i) => ({id: l.id, data: l, sort: i})));
+    if (r.error) throw r.error;
+    const goneL = rl.data.map(x => x.id).filter(id => !lessons.some(l => l.id === id));
+    const goneD = rd.data.map(x => x.id).filter(id => !dgs[id]);
+    if (goneL.length && (r = await sb.from('lessons').delete().in('id', goneL)).error) throw r.error;
+    if (goneD.length && (r = await sb.from('diagrams').delete().in('id', goneD)).error) throw r.error;
+  } else localStorage.setItem('alur-content', JSON.stringify({L: lessons, DG: dgs}));
+  useContent(lessons, dgs);
+}
+
+async function initAuth() {
+  if (!SB_ON) return;
+  const {createClient} = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
+  const sb = auth.sb = createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {auth: {flowType: 'pkce'}});
+  const [rl, rd] = await Promise.all([sb.from('lessons').select('data').order('sort'), sb.from('diagrams').select('id,data')]);
+  if (!rl.error && !rd.error && rl.data.length) useContent(rl.data.map(x => x.data), Object.fromEntries(rd.data.map(x => [x.id, x.data])));
+  const {data: {session}} = await sb.auth.getSession();
+  await setUser(session?.user || null);
+  // Panggilan Supabase di dalam callback bisa deadlock, jadi ditunda; render ulang hanya jika user benar-benar berganti.
+  sb.auth.onAuthStateChange((_e, s) => { const u = s?.user || null; if (u?.id !== auth.user?.id) setTimeout(() => setUser(u).then(route)); });
+}
+async function setUser(u) {
+  auth.user = u; auth.admin = false;
+  if (u) { const {data} = await auth.sb.from('admins').select('user_id').eq('user_id', u.id).maybeSingle(); auth.admin = !!data; }
+  renderAccount();
+}
+function renderAccount() {
+  const b = $('#acct'), u = auth.user, m = u?.user_metadata || {};
+  const name = m.full_name || m.name || m.user_name || u?.email || '';
+  b.innerHTML = u ? (m.avatar_url ? `<img src="${esc(m.avatar_url)}" alt="" referrerpolicy="no-referrer">` : `<span class="ini">${esc(name.slice(0, 1).toUpperCase())}</span>`) : 'Masuk';
+  b.className = u ? 'ib acct' : 'btn sm';
+  b.setAttribute('aria-label', u ? `Akun ${name}` : 'Masuk');
+  $('#acct-body').innerHTML = u
+    ? `<h2>${esc(name)}</h2><p class="muted">${esc(u.email || '')}${auth.admin ? '. Kamu admin konten.' : ''}</p><div class="row">${auth.admin ? '<a class="btn" href="#/admin" data-close>Kelola konten</a>' : ''}<button class="btn pri" data-logout>Keluar</button></div>`
+    : `<h2>Masuk ke Alur</h2><p class="muted">Masuk untuk mengelola konten jika kamu admin. Progres belajar tetap tersimpan di perangkat ini.</p>
+       <div class="oauth"><button class="btn" data-login="google"${SB_ON ? '' : ' disabled'}>${ico(I.google)}Lanjutkan dengan Google</button><button class="btn" data-login="github"${SB_ON ? '' : ' disabled'}>${ico(I.github)}Lanjutkan dengan GitHub</button></div>
+       ${SB_ON ? '' : '<p class="note">Login belum aktif di situs ini. Isi URL dan anon key Supabase di config.js untuk menyalakannya.</p>'}`;
+  $$('.rail [data-r=admin]').forEach(a => a.hidden = !auth.admin);
+}
+$('#acct').onclick = () => $('#acct-dlg').showModal();
+$('#acct-dlg').onclick = async e => {
+  const d = $('#acct-dlg');
+  if (e.target === d || e.target.closest('[data-close]')) return d.close();
+  const p = e.target.closest('[data-login]')?.dataset.login;
+  if (p) {
+    const {error} = await auth.sb.auth.signInWithOAuth({provider: p, options: {redirectTo: location.origin + location.pathname}});
+    if (error) $('#acct-body').insertAdjacentHTML('beforeend', `<p class="qres no">Gagal masuk: ${esc(error.message)}</p>`);
+  }
+  if (e.target.closest('[data-logout]')) { await auth.sb.auth.signOut(); d.close(); }
+};
+
+/* ---------- Admin ---------- */
+const DG_TEMPLATE = {nodes: [['c', 'client', 60, 90, 'Client'], ['s', 'server', 260, 90, 'Server']], edges: ['c-s'], steps: [{t: 'Langkah pertama', d: 'Tulis caption satu sampai dua kalimat.', f: ['c>s'], h: ['s']}], quiz: {q: 'Pertanyaan kuis?', o: ['Pilihan A', 'Pilihan B'], a: 0}};
+const fmtDG = d => `{\n  "nodes": [\n${d.nodes.map(n => '    ' + JSON.stringify(n)).join(',\n')}\n  ],\n  "edges": ${JSON.stringify(d.edges)},\n  "steps": [\n${d.steps.map(s => '    ' + JSON.stringify(s)).join(',\n')}\n  ],\n  "quiz": ${JSON.stringify(d.quiz)}\n}`;
+const errList = e => e.length ? `<ul class="errs">${e.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+
+function viewAdmin(kind, id) {
+  if (!auth.admin) {
+    view.innerHTML = `<div class="empty"><h1 class="w-title">Khusus admin</h1><p>Halaman ini untuk admin konten. ${auth.user ? 'Akunmu belum terdaftar sebagai admin.' : 'Masuk dengan akun yang terdaftar sebagai admin.'}</p>${auth.user ? '' : '<button class="btn pri" data-open-acct>Masuk</button>'}</div>`;
+    return null;
+  }
+  if (kind === 'l') return adminLesson(id);
+  if (kind === 'd') return adminDiagram(id);
+  const used = k => L.filter(l => l.dg === k).length;
+  view.innerHTML = `<div class="adm">
+    <header class="page-head"><h1>Kelola konten</h1><p>Tambah, ubah, dan hapus pelajaran serta animasinya. ${SB_ON ? 'Perubahan langsung tampil untuk semua pengguna.' : 'Mode demo: perubahan hanya tersimpan di browser ini sampai Supabase disambungkan.'}</p></header>
+    <section><div class="adm-head"><h2>Pelajaran <span class="muted num">${L.length}</span></h2><a class="btn pri" href="#/admin/l/new">Tambah pelajaran</a></div>
+      <div class="adm-list">${CATS.map(c => L.filter(l => l.cat === c.id).map(l => `<div class="adm-row" style="--cat:var(${c.v})"><span class="card-line"></span><span><b>${esc(l.t)}</b><span class="sub"><span>${c.name}</span><span class="lvl">${lvIcon(l.lv)}${LV[l.lv]}</span><span>${l.min} mnt</span><span>Animasi ${esc(l.dg)}</span></span></span><a class="btn sm" href="#/admin/l/${l.id}">Ubah</a><button class="btn ghost sm" data-del-l="${l.id}">Hapus</button></div>`).join('')).join('')}</div></section>
+    <section><div class="adm-head"><h2>Animasi <span class="muted num">${Object.keys(DG).length}</span></h2><a class="btn pri" href="#/admin/d/new">Tambah animasi</a></div>
+      <div class="adm-dg">${Object.keys(DG).map(k => `<div class="adm-card"><a class="thumb" href="#/admin/d/${k}" tabindex="-1" aria-hidden="true">${diagramSVG(k, true)}</a><div><b>${esc(k)}</b><span class="muted">${DG[k].steps.length} langkah, dipakai ${used(k)} pelajaran</span></div><div class="row"><a class="btn sm" href="#/admin/d/${k}">Ubah</a><button class="btn ghost sm" data-del-d="${k}">Hapus</button></div></div>`).join('')}</div></section>
+    ${SB_ON ? '' : '<section><button class="btn" data-reset>Kembalikan konten bawaan</button></section>'}
+    <p class="qres" id="adm-msg" aria-live="polite"></p></div>`;
+  view.onclick = async e => {
+    const msg = $('#adm-msg');
+    const dl = e.target.closest('[data-del-l]')?.dataset.delL, dd = e.target.closest('[data-del-d]')?.dataset.delD;
+    try {
+      if (dl) {
+        const l = L.find(x => x.id === dl);
+        if (!confirm(`Hapus pelajaran “${l.t}”? Tindakan ini tidak bisa dibatalkan.`)) return;
+        await saveContent(L.filter(x => x !== l), DG); route();
+      } else if (dd) {
+        const users = L.filter(l => l.dg === dd);
+        if (users.length) { msg.className = 'qres no'; msg.textContent = `Animasi “${dd}” masih dipakai oleh: ${users.map(l => l.t).join(', ')}. Ganti animasi pelajaran itu dulu.`; return; }
+        if (!confirm(`Hapus animasi “${dd}”?`)) return;
+        const {[dd]: _, ...rest} = DG; await saveContent(L, rest); route();
+      } else if (e.target.closest('[data-reset]')) {
+        if (!confirm('Buang semua perubahan dan kembali ke konten bawaan?')) return;
+        localStorage.removeItem('alur-content'); useContent(structuredClone(BUILTIN.L), structuredClone(BUILTIN.DG)); route();
+      }
+    } catch (err) { msg.className = 'qres no'; msg.textContent = `Gagal menyimpan: ${err.message || err}`; }
+  };
+  return () => { view.onclick = null; };
+}
+
+function adminLesson(id) {
+  const isNew = id === 'new', orig = L.find(l => l.id === id);
+  if (!isNew && !orig) { location.replace('#/admin'); return null; }
+  const l = orig || {id: '', t: '', s: '', cat: CATS[0].id, lv: 0, min: 10, dg: Object.keys(DG)[0], d: '', p: []};
+  const opt = (v, cur, label) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(label)}</option>`;
+  view.innerHTML = `<div class="adm"><header class="page-head"><a href="#/admin" class="back">Kelola konten</a><h1>${isNew ? 'Tambah pelajaran' : 'Ubah pelajaran'}</h1></header>
+    <div class="adm-edit"><form class="adm-form" novalidate>
+      <label>ID<input type="text" name="id" value="${esc(l.id)}" ${isNew ? 'required pattern="[a-z0-9_]+" maxlength="20"' : 'readonly'}><small>${isNew ? 'Dipakai di alamat halaman, misalnya f5. Tidak bisa diubah setelah dibuat.' : 'ID tidak bisa diubah agar progres pengguna tidak hilang.'}</small></label>
+      <label>Judul<input type="text" name="t" value="${esc(l.t)}" maxlength="80" required></label>
+      <label>Nama stasiun di peta<input type="text" name="s" value="${esc(l.s)}" maxlength="24" required><small>Pendek, tampil di bawah stasiun.</small></label>
+      <div class="row"><label>Kategori<select name="cat">${CATS.map(c => opt(c.id, l.cat, c.name)).join('')}</select></label>
+        <label>Tingkat<select name="lv">${LV.map((n, i) => opt(String(i), String(l.lv), n)).join('')}</select></label>
+        <label>Durasi (menit)<input type="number" name="min" value="${l.min}" min="1" max="120"></label></div>
+      <label>Animasi<select name="dg">${Object.keys(DG).map(k => opt(k, l.dg, `${k} (${DG[k].steps.length} langkah)`)).join('')}</select><small>Kuis ikut animasi yang dipilih. <a href="#/admin/d/new">Buat animasi baru</a></small></label>
+      <label>Deskripsi<textarea name="d" rows="3" required>${esc(l.d)}</textarea></label>
+      <label>Poin kunci<textarea name="p" rows="4">${esc(l.p.join('\n'))}</textarea><small>Satu poin per baris.</small></label>
+      <div id="adm-err"></div>
+      <div class="row"><button class="btn pri">Simpan pelajaran</button><a class="btn ghost" href="#/admin">Batal</a></div>
+    </form><aside><p class="lbl-s">Pratinjau kartu</p><div class="adm-prev" inert></div></aside></div></div>`;
+  const form = $('.adm-form', view);
+  const read = () => { const f = new FormData(form); return {id: f.get('id').trim(), t: f.get('t').trim(), s: f.get('s').trim(), cat: f.get('cat'), lv: +f.get('lv'), min: +f.get('min'), dg: f.get('dg'), d: f.get('d').trim(), p: f.get('p').split('\n').map(x => x.trim()).filter(Boolean)}; };
+  const preview = () => { const x = read(); if (Object.hasOwn(CAT, x.cat) && Object.hasOwn(DG, x.dg)) $('.adm-prev', view).innerHTML = cardHTML({...x, t: x.t || 'Judul pelajaran', id: x.id || 'new'}); };
+  form.oninput = preview; preview();
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const x = read(), errs = checkLesson(x, DG);
+    if (isNew && L.some(o => o.id === x.id)) errs.push(`ID “${x.id}” sudah dipakai.`);
+    $('#adm-err').innerHTML = errList(errs);
+    if (errs.length) return;
+    let next;
+    if (isNew) { const last = L.findLastIndex(o => o.cat === x.cat); next = [...L]; next.splice(last < 0 ? L.length : last + 1, 0, x); }
+    else next = L.map(o => o === orig ? x : o);
+    try { await saveContent(next, DG); location.hash = '#/admin'; }
+    catch (err) { $('#adm-err').innerHTML = errList([`Gagal menyimpan: ${err.message || err}`]); }
+  };
+  return () => {};
+}
+
+function adminDiagram(id) {
+  const isNew = id === 'new', orig = Object.hasOwn(DG, id) ? DG[id] : null;
+  if (!isNew && !orig) { location.replace('#/admin'); return null; }
+  view.innerHTML = `<div class="adm"><header class="page-head"><a href="#/admin" class="back">Kelola konten</a><h1>${isNew ? 'Tambah animasi' : `Ubah animasi ${esc(id)}`}</h1>
+      <p>Animasi ditulis sebagai data: node, edge, dan langkah. Pratinjau di kanan langsung diperbarui saat kamu mengetik.</p></header>
+    <div class="adm-edit wide"><form class="adm-form" novalidate>
+      <label>ID<input type="text" name="id" value="${isNew ? '' : esc(id)}" ${isNew ? 'required pattern="[a-z0-9_]+" maxlength="20"' : 'readonly'}></label>
+      <label>Data animasi (JSON)<textarea name="json" rows="18" spellcheck="false" class="code">${esc(fmtDG(orig || DG_TEMPLATE))}</textarea></label>
+      <details class="help"><summary>Format data</summary><div class="kv">
+        <code>nodes</code><span>[id, tipe, x, y, label]. Kanvas 320×180. Tipe: ${Object.keys(TYPES).join(', ')}.</span>
+        <code>edges</code><span>Garis antar node, "a-b".</span>
+        <code>steps[].t / d</code><span>Judul langkah dan caption.</span>
+        <code>steps[].f</code><span>Aliran paket "a>b". Awalan "!" berarti request gagal di tengah jalan.</span>
+        <code>steps[].h / x</code><span>Node yang disorot / node yang mati.</span>
+        <code>steps[].cut</code><span>Edge yang terputus, misalnya partisi jaringan.</span>
+        <code>quiz</code><span>{"q": pertanyaan, "o": [pilihan], "a": indeks jawaban benar mulai 0}.</span></div></details>
+      <div id="adm-err"></div>
+      <div class="row"><button class="btn pri">Simpan animasi</button><a class="btn ghost" href="#/admin">Batal</a></div>
+    </form><aside><p class="lbl-s">Pratinjau</p><div class="adm-player"></div></aside></div></div>`;
+  const form = $('.adm-form', view), box = $('.adm-player', view);
+  let player = null, timer = 0;
+  function parse() { try { const d = JSON.parse(form.elements.json.value); return {d, errs: checkDiagram(d)}; } catch (err) { return {d: null, errs: [`JSON tidak valid: ${err.message}`]}; } }
+  function preview() {
+    const {d, errs} = parse();
+    $('#adm-err').innerHTML = errList(errs);
+    if (errs.length) return;
+    player?.destroy();
+    box.innerHTML = playerHTML(d);
+    player = mountPlayer($('.player', box), d, () => {});
+  }
+  form.oninput = e => { if (e.target.name === 'json') { clearTimeout(timer); timer = setTimeout(preview, 400); } };
+  preview();
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const key = form.elements.id.value.trim(), {d, errs} = parse();
+    if (!/^[a-z0-9_]{1,20}$/.test(key)) errs.push('ID hanya huruf kecil, angka, dan garis bawah (maksimal 20).');
+    if (isNew && Object.hasOwn(DG, key)) errs.push(`ID “${key}” sudah dipakai.`);
+    $('#adm-err').innerHTML = errList(errs);
+    if (errs.length) return;
+    try { await saveContent(L, {...DG, [key]: d}); location.hash = '#/admin'; }
+    catch (err) { $('#adm-err').innerHTML = errList([`Gagal menyimpan: ${err.message || err}`]); }
+  };
+  return () => { clearTimeout(timer); player?.destroy(); };
+}
+
+/* ---------- Shell ---------- */
+$('.rail').innerHTML = [['home', '#/', I.home, 'Beranda'], ['playground', '#/playground', I.nodes, 'Playground'], ['saved', '#/saved', I.bookmark, 'Disimpan'], ['design', '#/design', I.swatch, 'Desain'], ['admin', '#/admin', I.gear, 'Admin']]
+  .map(([k, h, i, n]) => `<a href="${h}" data-r="${k}">${ico(i)}${n}</a>`).join('');
+
+let cleanup = null;
+function route() {
+  cleanup?.(); cleanup = null;
+  const h = location.hash || '#/';
+  let m, section = 'home';
+  if ((m = h.match(/^#\/l\/(\w+)$/))) cleanup = viewLesson(m[1]);
+  else if ((m = h.match(/^#\/playground(?:\/(\w+))?$/))) { cleanup = viewPlayground(m[1]); section = 'playground'; }
+  else if (h === '#/design') { cleanup = viewDesign(); section = 'design'; }
+  else if ((m = h.match(/^#\/admin(?:\/([ld])\/(\w+))?$/))) { cleanup = viewAdmin(m[1], m[2]); section = 'admin'; }
+  else if (h === '#/saved') { cleanup = viewHome(true); section = 'saved'; }
+  else cleanup = viewHome(false);
+  $$('.rail a').forEach(a => a.dataset.r === section ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  scrollTo(0, 0);
+}
+addEventListener('hashchange', route);
+
+const q = $('#q');
+q.addEventListener('input', () => {
+  F.q = q.value;
+  if (refreshGrid) refreshGrid(); else location.hash = '#/';
+});
+addEventListener('keydown', e => {
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); }
+});
+
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-open-acct]')) return $('#acct-dlg').showModal();
+  const b = e.target.closest('[data-save]'); if (!b) return;
+  const id = b.dataset.save, s = store.s.saved, i = s.indexOf(id);
+  i < 0 ? s.push(id) : s.splice(i, 1); store.save();
+  $$(`[data-save="${id}"]`).forEach(x => { x.setAttribute('aria-pressed', i < 0); const t = $('.lbl', x); if (t) t.textContent = i < 0 ? 'Disimpan' : 'Simpan'; });
+  if (location.hash === '#/saved') refreshGrid?.();
+});
+
+function applyTheme(t) { t ? root.dataset.theme = t : delete root.dataset.theme; dispatchEvent(new Event('themechange')); }
+$('#theme').onclick = () => {
+  const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  store.s.theme = cur === 'dark' ? 'light' : 'dark'; store.save(); applyTheme(store.s.theme);
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => dispatchEvent(new Event('themechange')));
+applyTheme(store.s.theme);
+renderAccount();
+(SB_ON ? initAuth().catch(err => console.error('Supabase:', err)) : Promise.resolve()).then(route);
+</script>
+</body>
+</html>
