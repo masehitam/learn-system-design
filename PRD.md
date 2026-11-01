@@ -78,7 +78,7 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Simpan, progres, riwayat | ✓ (lokal) | Sinkron akun | |
 | Akun dan login | | ✓ (Google, GitHub, magic link email) — sudah di prototype | |
 | Playground: kanvas + simulasi aliran | ✓ | Simpan dan bagikan desain lewat tautan (bagikan sudah di prototype) | |
-| Tantangan playground | ✓ (3) | 15 tantangan (sudah di prototype, dengan batasan jumlah komponen, komponen wajib/terlarang, hit rate, dan antrean), papan skor pribadi | |
+| Tantangan playground | ✓ (3) | 15 tantangan (sudah di prototype, dengan batasan jumlah komponen, komponen wajib/terlarang, hit rate, dan antrean), papan skor pribadi (sudah di prototype: rekor biaya termurah per tantangan, tersinkron ke akun) | |
 | Sandbox teknologi (Redis, SQL, Kafka) | | ✓ Redis dan SQL di browser (sudah di prototype) | Kafka, consistent hashing, CAP lab |
 | Editor konten internal | Format JSON + validasi CI | Editor visual | Kontributor komunitas |
 | PWA + offline | | ✓ (sudah di prototype) | |

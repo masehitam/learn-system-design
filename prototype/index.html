@@ -299,6 +299,11 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .sch{display:grid;gap:3px;padding:8px 0;border-bottom:1px solid var(--rule)}.sch:last-child{border:0}.sch .mono.muted{font-size:12.5px}
 .sch-ix{display:flex;gap:6px;align-items:center;color:var(--ok);font-size:12.5px}.sch-ix .ico{width:14px;height:14px}
 .win{margin-top:10px;font-weight:800;color:var(--ok)}
+.best{margin-top:12px;font-size:13.5px;color:var(--ink-2)}.best b{color:var(--ink)}
+.board{margin-top:10px;font-size:13px}.board summary{cursor:pointer;font-weight:700}
+.board table{width:100%;border-collapse:collapse;margin-top:8px}.board th,.board td{padding:5px 4px;text-align:left;border-bottom:1px solid var(--rule)}
+.board th{font-size:12px;color:var(--ink-2)}.board td.num{text-align:right;white-space:nowrap}.board th:not(:first-child){text-align:right}
+.board tr[aria-current]{font-weight:700}
 .conns{list-style:none;display:grid;gap:4px;margin-top:6px;font-size:14px}
 .conns li{display:flex;justify-content:space-between;align-items:center;gap:8px}
 #pg-del{margin-top:16px}
@@ -424,9 +429,9 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement, view = $('#view');
 
 const store = (() => {
-  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, theme: null};
+  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}, theme: null};
   try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
-  s.edits ||= {}; s.srs ||= {}; // data lama belum punya field ini
+  s.edits ||= {}; s.srs ||= {}; s.best ||= {}; // data lama belum punya field ini
   return {s, onSave: null, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} this.onSave?.(); }};
 })();
 
@@ -1071,6 +1076,8 @@ function checkChallenge(C, g, sim, rps) {
   if (C.backlog) rows.push(['Antrean tidak menumpuk', sim.backlog < 1]);
   return rows;
 }
+// Rekor pribadi per tantangan: biaya termurah menang; jika biayanya sama, latensi lebih rendah yang menang.
+const betterRun = (a, b) => !b || a.cost < b.cost - .5 || (Math.abs(a.cost - b.cost) <= .5 && a.lat < b.lat - .5);
 (function challengeSelfTest() {
   const g = {nodes: [{id: 'a', type: 'client', cap: Infinity}, {id: 'b', type: 'cdn', cap: 100000, hit: .95}, {id: 'c', type: 'server', cap: 1500}], edges: [['a', 'b'], ['b', 'c']]};
   const rows = checkChallenge(CHALLENGES[13], g, simulate(g, 15000), 15000);
@@ -1123,7 +1130,8 @@ function viewPlayground(presetId, shared) {
       <div class="cv-wrap"><canvas id="pg-cv" aria-label="Kanvas arsitektur. Panel di kanan bisa dipakai untuk memilih dan menyambungkan komponen dengan keyboard."></canvas><p class="cv-hint" id="pg-hint"></p></div>
       <div class="side">
         <section class="panel" aria-labelledby="h-res"><h2 id="h-res">Hasil</h2><div class="metrics" id="pg-metrics" aria-live="polite"></div><p class="advice" id="pg-advice"></p></section>
-        <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan <span class="muted num" id="pg-chal-n"></span></h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul></section>
+        <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan <span class="muted num" id="pg-chal-n"></span></h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul><p class="best" id="pg-best"></p>
+          <details class="board"><summary>Papan skor pribadi</summary><div id="pg-board"></div></details></section>
         <section class="panel" id="pg-insp" aria-label="Pengaturan komponen"></section>
       </div>
     </div></div>`;
@@ -1156,10 +1164,26 @@ function viewPlayground(presetId, shared) {
     $('#pg-chal-d').textContent = C.d;
     const rows = checkChallenge(C, g, sim, rps);
     const win = rows.every(r => r[1]);
-    if (win && !store.s.chal[chal]) { store.s.chal[chal] = true; store.save(); $('#pg-chal').options[chal].text = `${C.name} (selesai)`; }
+    if (win) {
+      const run = {cost: sim.cost, lat: sim.lat, t: Date.now()}, first = !store.s.chal[chal];
+      if (first || betterRun(run, store.s.best[chal])) {
+        store.s.chal[chal] = true; store.s.best[chal] = run; store.save();
+        if (first) $('#pg-chal').options[chal].text = `${C.name} (selesai)`;
+      }
+    }
+    renderBoard();
     $('#pg-chal-n').textContent = `${CHALLENGES.filter((_, i) => store.s.chal[i]).length} dari ${CHALLENGES.length} selesai`;
     $('#pg-checks').innerHTML = rows.map(([k, ok]) => `<li class="${ok ? 'pass' : 'fail'}">${ico(ok ? I.check : I.cross)}<span>${k}</span></li>`).join('') + (win ? '<li class="win">Tantangan selesai. Coba tantangan berikutnya.</li>' : '');
     kick();
+  }
+  function renderBoard() {
+    const b = store.s.best[chal];
+    $('#pg-best').innerHTML = b ? `Rekor terbaikmu: <b class="num">$${fmt(b.cost)}/bln</b> dengan latensi <span class="num">${fmt(b.lat)} ms</span>. Bisa lebih murah lagi?`
+      : store.s.chal[chal] ? 'Selesai. Selesaikan sekali lagi untuk mencatat rekor biayamu.' : 'Selesaikan tantangan ini untuk mencatat rekor biayamu.';
+    $('#pg-board').innerHTML = `<table><thead><tr><th>Tantangan</th><th>Biaya</th><th>Latensi</th></tr></thead><tbody>${CHALLENGES.map((c, i) => {
+      const r = store.s.best[i];
+      return `<tr${i === chal ? ' aria-current="true"' : ''}><td>${i + 1}. ${esc(c.name)}</td><td class="num">${r ? '$' + fmt(r.cost) : store.s.chal[i] ? 'selesai' : '–'}</td><td class="num">${r ? fmt(r.lat) + ' ms' : '–'}</td></tr>`;
+    }).join('')}</tbody></table>`;
   }
   function advice() {
     const kidsOf = id => g.edges.filter(e => e[0] === id);
@@ -1872,13 +1896,13 @@ async function setUser(u) {
 }
 
 /* ---------- Sinkron progres ---------- */
-const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits', 'srs'];
+const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits', 'srs', 'best'];
 // Jejak kapan simpanan ('s:id') atau catatan ('n:pelajaran:id') terakhir ditambah/dihapus, agar hapusan ikut tersinkron.
 const mark = (k, on) => { store.s.edits[k] = {t: Date.now(), on}; };
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 // Data dari server dibersihkan per field; nilai yang bentuknya salah dibuang, bukan merusak state lokal.
 function cleanState(d) {
-  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}};
+  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}};
   if (!isObj(d)) return o;
   if (isObj(d.progress)) for (const [k, v] of Object.entries(d.progress)) if (typeof v === 'number' && v >= 0 && v <= 1) o.progress[k] = v;
   if (Array.isArray(d.saved)) o.saved = d.saved.filter(x => typeof x === 'string');
@@ -1886,16 +1910,18 @@ function cleanState(d) {
   for (const key of ['quiz', 'chal']) if (isObj(d[key])) for (const [k, v] of Object.entries(d[key])) if (typeof v === 'boolean') o[key][k] = v;
   if (isObj(d.edits)) for (const [k, v] of Object.entries(d.edits)) if (isObj(v) && typeof v.t === 'number' && typeof v.on === 'boolean') o.edits[k] = {t: v.t, on: v.on};
   if (isObj(d.srs)) for (const [k, v] of Object.entries(d.srs)) if (isObj(v) && Number.isInteger(v.b) && v.b >= 0 && v.b < SRS_DAYS.length && typeof v.due === 'number' && typeof v.t === 'number') o.srs[k] = {b: v.b, due: v.due, t: v.t};
+  if (isObj(d.best)) for (const [k, v] of Object.entries(d.best)) if (isObj(v) && [v.cost, v.lat, v.t].every(x => Number.isFinite(x) && x >= 0)) o.best[k] = {cost: v.cost, lat: v.lat, t: v.t};
   return o;
 }
 // Gabungan dua perangkat: progres tertinggi, simpanan dan catatan digabung, kuis/tantangan benar jika benar di salah satunya.
 // Simpanan/catatan yang perubahan terakhirnya berupa hapus dibuang dari hasil gabungan.
 // shortcut: memakai jam perangkat dan jejak edits tidak pernah dipangkas; cukup selama jumlahnya ratusan, bukan jutaan.
 function mergeState(a, b) {
-  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}, srs: {...a.srs}};
+  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}, srs: {...a.srs}, best: {...a.best}};
   for (const [k, v] of Object.entries(b.progress)) m.progress[k] = Math.max(m.progress[k] || 0, v);
   for (const [k, list] of Object.entries(b.notes)) { const ids = new Set((m.notes[k] || []).map(n => n.id)); m.notes[k] = [...(m.notes[k] || []), ...list.filter(n => !ids.has(n.id))]; }
   for (const key of ['quiz', 'chal']) for (const [k, v] of Object.entries(b[key])) m[key][k] = m[key][k] || v;
+  for (const [k, v] of Object.entries(b.best)) if (betterRun(v, m.best[k])) m.best[k] = v; // rekor terbaik menang
   for (const key of ['edits', 'srs']) for (const [k, v] of Object.entries(b[key])) if (!m[key][k] || v.t > m[key][k].t) m[key][k] = v; // yang terakhir diubah menang
   const gone = k => m.edits[k]?.on === false;
   m.saved = m.saved.filter(id => !gone('s:' + id));
@@ -1916,6 +1942,8 @@ function mergeState(a, b) {
   console.assert(M.saved.join() === 'f2' && M.notes.f1.length === 0 && !('bad' in M.edits), 'sync: hapusan tersinkron, simpan ulang yang lebih baru menang');
   const R = mergeState(cleanState({srs: {'f1:0': {b: 2, due: 9, t: 5}, 'f1:1': {b: 1, due: 3, t: 1}}}), cleanState({srs: {'f1:0': {b: 0, due: 7, t: 2}, 'f1:1': {b: 0, due: 4, t: 3}, x: {b: 9, due: 1, t: 1}}}));
   console.assert(R.srs['f1:0'].b === 2 && R.srs['f1:1'].b === 0 && !('x' in R.srs), 'sync: jadwal ulang terakhir menang, data rusak dibuang');
+  const B2 = mergeState(cleanState({best: {0: {cost: 500, lat: 90, t: 1}, 1: {cost: 300, lat: 50, t: 1}}}), cleanState({best: {0: {cost: 400, lat: 120, t: 2}, 1: {cost: 300, lat: 40, t: 2}, 2: {cost: -1, lat: 1, t: 1}}}));
+  console.assert(B2.best[0].cost === 400 && B2.best[1].lat === 40 && !(2 in B2.best), 'sync: rekor termurah menang, data rusak dibuang');
 })();
 
 const sync = {
