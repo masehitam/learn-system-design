@@ -79,7 +79,7 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Akun dan login | | ✓ (Google, GitHub, magic link email) — sudah di prototype | |
 | Playground: kanvas + simulasi aliran | ✓ | Simpan dan bagikan desain lewat tautan (bagikan sudah di prototype) | |
 | Tantangan playground | ✓ (3) | 15 tantangan, papan skor pribadi | |
-| Sandbox teknologi (Redis, SQL, Kafka) | | ✓ Redis dan SQL di browser | Kafka, consistent hashing, CAP lab |
+| Sandbox teknologi (Redis, SQL, Kafka) | | ✓ Redis dan SQL di browser (sudah di prototype) | Kafka, consistent hashing, CAP lab |
 | Editor konten internal | Format JSON + validasi CI | Editor visual | Kontributor komunitas |
 | PWA + offline | | ✓ (sudah di prototype) | |
 
@@ -166,6 +166,7 @@ Format: user story, lalu kriteria penerimaan (KP) yang bisa diuji.
 **US-12 (v1.1–v2.0).** Sebagai pelajar, saya ingin mencoba teknologi nyata di browser.
 - Redis lab: perintah `GET/SET/EXPIRE/INCR` di emulator berbasis WebAssembly, divisualisasikan sebagai isi memori dan TTL.
 - SQL lab: PGlite atau sql.js di browser; latihan indeks dengan `EXPLAIN` yang divisualisasikan.
+- Status prototype: Redis lab (emulator JS: string, list, TTL, 5 latihan) dan SQL lab (sql.js 1.10.3, 100.000 user dan 300.000 pesanan, rencana eksekusi dan grafik waktu, 4 latihan) sudah ada di `#/lab`. sql.js dimuat lazy dari jsDelivr dengan SRI. Progres latihan lab belum disimpan.
 - Kafka lab: topic, partition, consumer group, dan offset yang disimulasikan, dengan animasi rebalancing.
 - Lab konsep: cincin consistent hashing, partisi CAP, rate limiter token bucket dengan slider.
 - KP umum: tidak ada server per pengguna, semua berjalan di tab browser; lab dimuat hanya saat dibuka (lazy load).

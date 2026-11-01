@@ -249,7 +249,49 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .checks{list-style:none;display:grid;gap:6px;margin-top:10px;font-size:13.5px}
 .checks li{display:flex;gap:8px;align-items:center}
 .checks .ico{width:16px;height:16px}
-.checks .pass{color:var(--ok)} .checks .fail{color:var(--bad)}
+.checks .pass{color:var(--ok)} .checks .fail{color:var(--bad)} .checks .todo{color:var(--ink-2)}
+.small{font-size:13px} .mono{font-family:var(--mono)}
+.lab-tabs{margin:-6px 0 18px}
+.seg-ctl a{flex:none;display:inline-flex;align-items:center;height:30px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-2);text-decoration:none}
+.seg-ctl a[aria-current=page]{background:var(--surface);color:var(--ink)}
+.lab-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:1000px){.lab-body{grid-template-columns:minmax(0,1fr)}}
+.term{display:grid;gap:12px}.term h2{margin-bottom:0}
+.cli-out{height:min(420px,40vh);overflow:auto;background:var(--sunk);border-radius:var(--r-m);padding:12px 14px;font:13px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.cli-out .cmd{color:var(--ink);margin-top:6px}.cli-out .res{color:var(--ink-2)}.cli-out .err{color:var(--bad)}.cli-out .sys{color:var(--ink-2);font-family:var(--font);font-size:13px}
+.cli-in{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--surface)}
+.cli-in:focus-within{border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in oklab,var(--focus) 22%,transparent)}
+.cli-in label{font:500 13px var(--mono);color:var(--ink-2)}
+.cli-in input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:var(--ink);font:13.5px var(--mono)}
+.cli-ex{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}.cli-ex .muted{margin-right:4px}
+.cli-ex .chip{height:30px;padding:0 12px;font-size:13px}.chip.mono{font-family:var(--mono);font-weight:500;font-size:12.5px}
+.mem{list-style:none;display:grid;gap:8px}
+.mem li{display:grid;gap:4px;padding:10px 12px;border-radius:var(--r-m);background:var(--sunk);min-width:0}
+.mem li.muted{background:none;padding:0;font-size:13.5px}
+.mem-k{display:flex;justify-content:space-between;gap:8px;align-items:center;min-width:0}.mem-k b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{flex:none;font-size:11.5px;font-weight:700;color:var(--ink-2);padding:1px 8px;border-radius:999px;background:var(--surface)}
+.mem-v{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttl{display:flex;align-items:center;gap:8px;font-size:12px}
+.ttl i{flex:1;height:6px;border-radius:3px;background:var(--surface);position:relative;overflow:hidden}
+.ttl i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--p));background:var(--c-cache)}
+.ttl span{min-width:56px;text-align:right}
+.sql-ed{display:block;width:100%;min-height:150px;resize:vertical;padding:12px 14px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--surface);color:var(--ink);font:13.5px/1.6 var(--mono)}
+.sql-ed:focus-visible{outline:0;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in oklab,var(--focus) 22%,transparent)}
+.sub-h{font-size:13.5px;font-weight:800;margin-bottom:6px}
+.plan ul{list-style:none;display:grid;gap:6px}.plan ul ul{margin:6px 0 0 10px;padding-left:12px;border-left:2px solid var(--rule)}
+.plan .p{display:inline-flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:6px 10px;border-radius:var(--r-s);background:var(--sunk);font-size:13px}
+.plan small{font-size:12.5px;font-weight:700;color:var(--ink-2)}.p.scan small{color:var(--bad)}.p.idx small{color:var(--ok)}.p.warn small{color:var(--warn)}
+.res-meta{margin:12px 0 8px}
+.res-tbl{overflow:auto;max-height:360px;border:1px solid var(--rule);border-radius:var(--r-m)}
+.res-tbl table{border-collapse:collapse;width:100%;font-size:13px}
+.res-tbl th,.res-tbl td{padding:6px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--rule)}
+.res-tbl th{position:sticky;top:0;background:var(--sunk);font-weight:700}.res-tbl td.num{text-align:right}
+.runs{list-style:none;display:grid;gap:10px;font-size:12.5px}.runs li{display:grid;gap:4px;min-width:0}.runs li.muted{font-size:13.5px}
+.runs code{font-family:var(--mono);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.runs .bar{display:flex;align-items:center;gap:8px}.runs .bar i{height:8px;border-radius:4px;background:var(--edge)}.runs .scan i{background:var(--bad)}.runs .idx i{background:var(--ok)}
+.runs .bar b{flex:none;font-weight:700}
+.sch{display:grid;gap:3px;padding:8px 0;border-bottom:1px solid var(--rule)}.sch:last-child{border:0}.sch .mono.muted{font-size:12.5px}
+.sch-ix{display:flex;gap:6px;align-items:center;color:var(--ok);font-size:12.5px}.sch-ix .ico{width:14px;height:14px}
 .win{margin-top:10px;font-weight:800;color:var(--ok)}
 .conns{list-style:none;display:grid;gap:4px;margin-top:6px;font-size:14px}
 .conns li{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -394,6 +436,8 @@ const I = {
   next: '<path d="M17.5 6v12M6 6l8 6-8 6z"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   cross: '<path d="M6 6l12 12M18 6 6 18"/>',
+  dot: '<circle cx="12" cy="12" r="5"/>',
+  flask: '<path d="M9.5 3.5h5M10.5 3.5v6L5 19a1.3 1.3 0 0 0 1.1 2h11.8a1.3 1.3 0 0 0 1.1-2l-5.5-9.5v-6M7.5 15h9"/>',
   google: '<path fill="currentColor" stroke="none" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zm-5.6-8c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2zM12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/>',
   github: '<path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
@@ -778,6 +822,7 @@ function nextHTML(l) {
 function viewLesson(id) {
   const l = L.find(x => x.id === id);
   if (!l) { location.replace('#/'); return null; }
+  const lab = l.cat === 'cache' || l.id === 'r1' || l.id === 'm1' ? 'redis' : l.cat === 'storage' ? 'sql' : null; // lab yang relevan untuk pelajaran ini
   const D = DG[l.dg], c = CAT[l.cat], idx = L.indexOf(l), next = [...L.slice(idx + 1), ...L.slice(0, idx)].slice(0, 8);
   const saved = store.s.saved.includes(l.id), done = prog(l.id) >= 1;
   view.innerHTML = `<div class="watch" style="--cat:var(${c.v})"><div>
@@ -789,6 +834,7 @@ function viewLesson(id) {
         <button class="btn" data-save="${l.id}" aria-pressed="${saved}">${ico(I.bookmark)}<span class="lbl">${saved ? 'Disimpan' : 'Simpan'}</span></button>
         <button class="btn" data-done aria-pressed="${done}">${ico(I.check)}<span class="lbl">${done ? 'Selesai' : 'Tandai selesai'}</span></button>
         <a class="btn pri" href="#/playground/${PRESET_OF[l.dg] || 'single'}">${ico(I.nodes)}Coba di playground</a>
+        ${lab ? `<a class="btn" href="#/lab/${lab}">${ico(I.flask)}Coba di lab ${lab === 'sql' ? 'SQL' : 'Redis'}</a>` : ''}
       </div>
     </div>
     <div class="tabs" role="tablist" aria-label="Materi pelajaran">
@@ -1219,6 +1265,330 @@ function viewPlayground(presetId, shared) {
   return () => { cancelAnimationFrame(raf); raf = -1; ro.disconnect(); io.disconnect(); removeEventListener('keydown', onKey); removeEventListener('themechange', onTheme); view.onclick = view.oninput = view.onchange = null; };
 }
 
+/* ---------- Lab: Redis ---------- */
+function tokenize(s) { // aturan kutip seperti redis-cli
+  const out = []; let i = 0;
+  while (i < s.length) {
+    if (/\s/.test(s[i])) { i++; continue; }
+    let t = '';
+    if (s[i] === '"' || s[i] === "'") {
+      const q = s[i++];
+      while (i < s.length && s[i] !== q) { if (s[i] === '\\' && q === '"' && i + 1 < s.length) i++; t += s[i++]; }
+      if (i >= s.length) return {err: 'ERR tanda kutip tidak ditutup'};
+      i++;
+    } else while (i < s.length && !/\s/.test(s[i])) t += s[i++];
+    out.push(t);
+  }
+  return out;
+}
+// Emulator Redis kecil: string dan list, TTL yang kedaluwarsa saat diakses (seperti Redis) plus sapuan berkala dari UI.
+function makeRedis(now = () => Date.now()) {
+  const db = new Map();
+  const live = k => { const e = db.get(k); if (e && e.exp != null && e.exp <= now()) { db.delete(k); return null; } return e || null; };
+  const WRONG = {err: 'WRONGTYPE Operation against a key holding the wrong kind of value'}, NOTINT = {err: 'ERR value is not an integer or out of range'};
+  const int = s => /^-?\d+$/.test(s) && Math.abs(+s) <= Number.MAX_SAFE_INTEGER ? +s : null;
+  const str = k => { const e = live(k); if (e && e.type !== 'string') throw WRONG; return e; };
+  const list = (k, make) => { let e = live(k); if (e && e.type !== 'list') throw WRONG; if (!e && make) db.set(k, e = {type: 'list', v: [], exp: null}); return e; };
+  const incr = (k, by) => {
+    const e = str(k), n = e ? int(e.v) : 0;
+    if (n === null || !Number.isSafeInteger(n + by)) throw NOTINT;
+    if (e) e.v = String(n + by); else db.set(k, {type: 'string', v: String(by), exp: null});
+    return {int: n + by};
+  };
+  const pop = end => ([k]) => { const e = list(k); if (!e) return {nil: true}; const x = end ? e.v.pop() : e.v.shift(); if (!e.v.length) db.delete(k); return {bulk: x}; };
+  const C = {
+    PING: [0, 1, a => a.length ? {bulk: a[0]} : {status: 'PONG'}],
+    SET: [2, 5, ([k, v, ...o]) => {
+      let exp = null, nx = false, xx = false;
+      for (let i = 0; i < o.length; i++) {
+        const f = o[i].toUpperCase();
+        if (f === 'NX') nx = true; else if (f === 'XX') xx = true;
+        else if ((f === 'EX' || f === 'PX') && i + 1 < o.length) { const n = int(o[++i]); if (n === null || n <= 0) return {err: "ERR invalid expire time in 'set' command"}; exp = n * (f === 'EX' ? 1000 : 1); }
+        else return {err: 'ERR syntax error'};
+      }
+      if (nx && xx) return {err: 'ERR syntax error'};
+      const has = !!live(k);
+      if ((nx && has) || (xx && !has)) return {nil: true};
+      db.set(k, {type: 'string', v, exp: exp && now() + exp, ttl0: exp});
+      return {status: 'OK'};
+    }],
+    GET: [1, 1, ([k]) => { const e = str(k); return e ? {bulk: e.v} : {nil: true}; }],
+    DEL: [1, Infinity, a => ({int: a.filter(k => live(k) && db.delete(k)).length})],
+    EXISTS: [1, Infinity, a => ({int: a.filter(k => live(k)).length})],
+    EXPIRE: [2, 2, ([k, s]) => {
+      const n = int(s); if (n === null) throw NOTINT;
+      const e = live(k); if (!e) return {int: 0};
+      if (n <= 0) db.delete(k); else { e.exp = now() + n * 1000; e.ttl0 = n * 1000; }
+      return {int: 1};
+    }],
+    TTL: [1, 1, ([k]) => { const e = live(k); return {int: !e ? -2 : e.exp == null ? -1 : Math.round((e.exp - now()) / 1000)}; }],
+    PERSIST: [1, 1, ([k]) => { const e = live(k); if (!e || e.exp == null) return {int: 0}; e.exp = null; return {int: 1}; }],
+    INCR: [1, 1, ([k]) => incr(k, 1)],
+    DECR: [1, 1, ([k]) => incr(k, -1)],
+    INCRBY: [2, 2, ([k, n]) => { const b = int(n); if (b === null) throw NOTINT; return incr(k, b); }],
+    DECRBY: [2, 2, ([k, n]) => { const b = int(n); if (b === null) throw NOTINT; return incr(k, -b); }],
+    KEYS: [1, 1, ([p]) => {
+      let re; try { re = new RegExp('^' + p.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$'); } catch { return {err: 'ERR pola tidak valid'}; }
+      return {arr: [...db.keys()].filter(k => live(k) && re.test(k)).sort().map(k => ({bulk: k}))};
+    }],
+    TYPE: [1, 1, ([k]) => ({status: live(k)?.type || 'none'})],
+    FLUSHALL: [0, 0, () => { db.clear(); return {status: 'OK'}; }],
+    LPUSH: [2, Infinity, ([k, ...v]) => { const e = list(k, true); e.v.unshift(...v.reverse()); return {int: e.v.length}; }],
+    RPUSH: [2, Infinity, ([k, ...v]) => { const e = list(k, true); e.v.push(...v); return {int: e.v.length}; }],
+    LPOP: [1, 1, pop(false)],
+    RPOP: [1, 1, pop(true)],
+    LLEN: [1, 1, ([k]) => ({int: list(k)?.v.length || 0})],
+    LRANGE: [3, 3, ([k, a, b]) => {
+      let s = int(a), t = int(b); if (s === null || t === null) throw NOTINT;
+      const v = list(k)?.v || [];
+      if (s < 0) s = Math.max(0, v.length + s);
+      if (t < 0) t += v.length;
+      return {arr: v.slice(s, t + 1).map(x => ({bulk: x}))};
+    }],
+  };
+  return {
+    db, names: Object.keys(C),
+    exec(line) {
+      const a = tokenize(line);
+      if (a.err || !a.length) return a.err ? a : null;
+      const name = a[0].toUpperCase(), c = Object.hasOwn(C, name) && C[name], args = a.slice(1);
+      if (!c) return {err: `ERR unknown command '${a[0]}'`};
+      if (args.length < c[0] || args.length > c[1]) return {err: `ERR wrong number of arguments for '${a[0].toLowerCase()}' command`};
+      try { return c[2](args); } catch (e) { if (e.err) return e; throw e; }
+    },
+    sweep() { return [...db.keys()].filter(k => !live(k)); },
+  };
+}
+const fmtReply = r => r.err ? `(error) ${r.err}` : r.status ?? (r.nil ? '(nil)' : r.int != null ? `(integer) ${r.int}` : r.bulk != null ? JSON.stringify(r.bulk)
+  : r.arr.length ? r.arr.map((x, i) => `${i + 1}) ${JSON.stringify(x.bulk)}`).join('\n') : '(empty array)');
+(function redisSelfTest() {
+  let t = 0; const r = makeRedis(() => t), x = s => fmtReply(r.exec(s));
+  console.assert(x('SET a 1 EX 10') === 'OK' && x('INCR a') === '(integer) 2' && x('TTL a') === '(integer) 10' && x('TTL nope') === '(integer) -2', 'redis: SET EX, INCR menjaga TTL');
+  t = 10000;
+  console.assert(x('GET a') === '(nil)' && x('EXISTS a') === '(integer) 0', 'redis: kunci hilang setelah TTL');
+  console.assert(x('SET s "halo dunia"') === 'OK' && x('GET s') === '"halo dunia"' && x('INCR s').startsWith('(error) ERR value') && x('SET s x NX') === '(nil)', 'redis: string, kutip, NX');
+  console.assert(x('RPUSH q a b') === '(integer) 2' && x('LPUSH q z') === '(integer) 3' && x('LRANGE q 0 -1') === '1) "z"\n2) "a"\n3) "b"' && x('GET q').startsWith('(error) WRONGTYPE') && x('LPOP q') === '"z"', 'redis: list');
+  console.assert(x('get').startsWith('(error) ERR wrong number') && x('constructor').startsWith('(error) ERR unknown') && x('KEYS *') === '1) "q"\n2) "s"' && x('SET k "x').startsWith('(error)'), 'redis: error dan KEYS');
+})();
+
+function viewLabRedis(box) {
+  const r = makeRedis(), hist = [], incrKeys = new Set(), done = new Set();
+  let hi = 0;
+  const EX = ['SET sesi:42 aktif EX 15', 'TTL sesi:42', 'INCR kunjungan', 'EXPIRE kunjungan 60', 'RPUSH tugas email-1 email-2', 'LPOP tugas', 'KEYS *'];
+  const TASKS = [
+    'Simpan sesi yang hilang sendiri, misalnya SET sesi:42 aktif EX 15',
+    'Hitung kunjungan dengan INCR sampai angkanya 3',
+    'Buat rate limiter: INCR sebuah kunci, lalu EXPIRE kunci yang sama',
+    'Tunggu sampai sebuah kunci hilang karena TTL-nya habis',
+    'Pakai list sebagai antrean: RPUSH beberapa tugas, lalu LPOP',
+  ];
+  box.innerHTML = `<div class="lab-body">
+    <section class="panel term" aria-labelledby="h-cli"><h2 id="h-cli">Konsol</h2>
+      <div class="cli-out" id="cli-out" role="log" aria-live="polite"></div>
+      <form class="cli-in" id="cli-form"><label for="cli">redis&gt;</label><input id="cli" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ketik perintah lalu tekan Enter"></form>
+      <div class="cli-ex"><span class="muted">Coba</span>${EX.map(c => `<button class="chip mono" data-cmd="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <p class="muted small">Perintah yang didukung: ${r.names.join(', ')}. Panah atas dan bawah memanggil perintah sebelumnya.</p>
+    </section>
+    <div class="side">
+      <section class="panel" aria-labelledby="h-mem"><h2 id="h-mem">Isi memori <span class="muted num" id="mem-n"></span></h2><ul class="mem" id="mem"></ul></section>
+      <section class="panel" aria-labelledby="h-lt"><h2 id="h-lt">Latihan</h2><ul class="checks" id="lab-checks"></ul></section>
+    </div></div>`;
+  const out = $('#cli-out', box), input = $('#cli', box);
+  const log = (cls, text) => {
+    out.insertAdjacentHTML('beforeend', `<div class="${cls}">${esc(text)}</div>`);
+    while (out.children.length > 300) out.firstChild.remove();
+    out.scrollTop = out.scrollHeight;
+  };
+  function renderMem() {
+    const now = Date.now(), keys = [...r.db.entries()].sort(([a], [b]) => a.localeCompare(b));
+    $('#mem-n', box).textContent = keys.length ? `${keys.length} kunci` : '';
+    $('#mem', box).innerHTML = keys.length ? keys.map(([k, e]) => {
+      const left = e.exp == null ? null : Math.max(0, e.exp - now), v = e.type === 'list' ? `[${e.v.map(x => JSON.stringify(x)).join(', ')}]` : JSON.stringify(e.v);
+      return `<li><div class="mem-k"><b class="mono">${esc(k)}</b><span class="tag">${e.type}</span></div><div class="mem-v mono" title="${esc(v)}">${esc(v)}</div>`
+        + (left == null ? '<div class="ttl muted">Tanpa TTL, disimpan sampai dihapus</div>' : `<div class="ttl"><i style="--p:${(left / e.ttl0).toFixed(3)}"></i><span class="num">${(left / 1000).toFixed(1)} dtk</span></div>`) + '</li>';
+    }).join('') : '<li class="muted">Memori kosong. Kunci yang kamu buat akan muncul di sini.</li>';
+  }
+  const renderChecks = () => { $('#lab-checks', box).innerHTML = TASKS.map((t, i) => `<li class="${done.has(i) ? 'pass' : 'todo'}">${ico(done.has(i) ? I.check : I.dot)}<span>${t}</span></li>`).join(''); };
+  function run(line) {
+    if (!line.trim()) return;
+    if (hist.at(-1) !== line) hist.push(line);
+    hi = hist.length;
+    log('cmd', 'redis> ' + line);
+    const res = r.exec(line), a = tokenize(line), cmd = a.err ? '' : (a[0] || '').toUpperCase();
+    if (res) log(res.err ? 'err' : 'res', fmtReply(res));
+    if (res && !res.err) {
+      if ((cmd === 'SET' && res.status && /\s(EX|PX)\s/i.test(line)) || (cmd === 'EXPIRE' && res.int === 1)) done.add(0);
+      if (/^INCR/.test(cmd)) { incrKeys.add(a[1]); if (res.int >= 3) done.add(1); }
+      if ((cmd === 'LPOP' || cmd === 'RPOP') && res.bulk != null) done.add(4);
+    }
+    if ([...incrKeys].some(k => r.db.get(k)?.exp != null)) done.add(2);
+    renderMem(); renderChecks();
+  }
+  box.onsubmit = e => { e.preventDefault(); run(input.value); input.value = ''; };
+  box.onclick = e => { const c = e.target.closest('[data-cmd]'); if (c) { run(c.dataset.cmd); input.focus(); } };
+  input.onkeydown = e => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    hi = clamp(hi + (e.key === 'ArrowUp' ? -1 : 1), 0, hist.length);
+    input.value = hist[hi] ?? '';
+  };
+  const tick = setInterval(() => {
+    const gone = r.sweep();
+    gone.forEach(k => log('sys', `Kunci "${k}" kedaluwarsa dan dihapus dari memori.`));
+    if (gone.length) { done.add(3); renderChecks(); }
+    if (gone.length || [...r.db.values()].some(e => e.exp != null)) renderMem();
+  }, 200);
+  log('sys', 'Terhubung ke emulator Redis di browser. Data hilang saat halaman ditutup.');
+  renderMem(); renderChecks();
+  return () => clearInterval(tick);
+}
+
+/* ---------- Lab: SQL ---------- */
+const SQL_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/';
+let sqlJs = null;
+// sql.js (~700 KB termasuk WASM) hanya dimuat saat lab SQL dibuka.
+function loadSqlJs() {
+  return sqlJs ||= new Promise((ok, bad) => {
+    const s = document.createElement('script');
+    s.src = SQL_CDN + 'sql-wasm.js'; s.crossOrigin = 'anonymous';
+    s.integrity = 'sha384-8D3Rsfo535FqoC1pHCCQMrNf75UgzyoG/HQm9zOzITRrz3QKzecc2E7JXKGCXoWu';
+    s.onload = ok; s.onerror = () => bad(new Error('sql.js tidak bisa dimuat. Periksa koneksi internet.'));
+    document.head.append(s);
+  }).then(() => initSqlJs({locateFile: f => SQL_CDN + f})).catch(e => { sqlJs = null; throw e; });
+}
+const SQL_SEED = `CREATE TABLE users(id INTEGER PRIMARY KEY, email TEXT NOT NULL, city TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, total INTEGER NOT NULL, status TEXT NOT NULL);
+WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 100000)
+INSERT INTO users SELECT i, 'user' || i || '@contoh.com', CASE i % 6 WHEN 0 THEN 'Jakarta' WHEN 1 THEN 'Bandung' WHEN 2 THEN 'Surabaya' WHEN 3 THEN 'Medan' WHEN 4 THEN 'Makassar' ELSE 'Yogyakarta' END, date('2024-01-01', '+' || (i % 700) || ' days') FROM n;
+WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 300000)
+INSERT INTO orders SELECT i, (i * 7919) % 100000 + 1, 5000 + (i * 37) % 2000 * 1000, CASE i % 4 WHEN 0 THEN 'dibatalkan' ELSE 'selesai' END FROM n;`;
+const SQL_EX = [
+  ['Cari user lewat email', "SELECT * FROM users WHERE email = 'user77777@contoh.com';"],
+  ['Buat indeks email', 'CREATE INDEX idx_users_email ON users(email);'],
+  ['Total belanja per user', "SELECT u.email, COUNT(*) AS pesanan, SUM(o.total) AS total\nFROM users u JOIN orders o ON o.user_id = u.id\nWHERE u.id <= 50\nGROUP BY u.id\nORDER BY total DESC\nLIMIT 10;"],
+  ['Buat indeks orders.user_id', 'CREATE INDEX idx_orders_user ON orders(user_id);'],
+  ['Hapus semua indeks', 'DROP INDEX IF EXISTS idx_users_email;\nDROP INDEX IF EXISTS idx_orders_user;'],
+];
+// Arti setiap baris EXPLAIN QUERY PLAN SQLite dalam bahasa pelajar.
+function planKind(d) {
+  if (/AUTOMATIC/.test(d)) return ['warn', 'Indeks sementara, dibuat ulang setiap query'];
+  if (/^SCAN .*USING (COVERING )?INDEX/.test(d)) return ['warn', 'Membaca seluruh indeks'];
+  if (/^SCAN/.test(d)) return ['scan', 'Membaca seluruh tabel'];
+  if (/^SEARCH/.test(d)) return ['idx', 'Langsung ke baris lewat indeks'];
+  if (/TEMP B-TREE/.test(d)) return ['warn', 'Mengurutkan atau mengelompokkan di memori'];
+  return ['', ''];
+}
+const fmtMs = ms => ms < .1 ? '< 0,1 ms' : ms.toLocaleString('id-ID', {maximumFractionDigits: ms < 10 ? 1 : 0}) + ' ms';
+
+function viewLabSql(box) {
+  let db = null, alive = true;
+  const runs = [], done = new Set();
+  const TASKS = [
+    'Cari satu user lewat email. Rencana eksekusinya membaca seluruh tabel users.',
+    'Buat indeks di kolom email.',
+    'Jalankan lagi pencarian yang sama. Sekarang rencananya lewat indeks, dan waktunya turun jauh.',
+    'Gabungkan users dan orders, lalu buat indeks di orders(user_id) agar join tidak membaca seluruh tabel orders.',
+  ];
+  box.innerHTML = `<div class="lab-body">
+    <div class="side">
+      <section class="panel" aria-labelledby="h-q"><h2 id="h-q">Query</h2>
+        <label class="skip" for="sql-ed">Teks SQL</label>
+        <textarea id="sql-ed" class="sql-ed" spellcheck="false">${esc(SQL_EX[0][1])}</textarea>
+        <div class="row" style="margin-top:10px"><button class="btn pri" id="sql-run" disabled>${ico(I.play)}Jalankan</button><span class="muted small">atau Ctrl + Enter</span><button class="btn ghost sm" id="sql-reset" disabled style="margin-left:auto">Reset database</button></div>
+        <div class="cli-ex" style="margin-top:12px"><span class="muted">Contoh</span>${SQL_EX.map(([n, q]) => `<button class="chip" data-sql="${esc(q)}">${n}</button>`).join('')}</div>
+      </section>
+      <section class="panel" aria-labelledby="h-res"><h2 id="h-res">Hasil</h2><div id="sql-out" aria-live="polite"><p class="muted" id="sql-status">Memuat SQLite...</p></div></section>
+    </div>
+    <div class="side">
+      <section class="panel" aria-labelledby="h-runs"><h2 id="h-runs">Waktu eksekusi</h2><ul class="runs" id="sql-runs"><li class="muted">Jalankan query untuk membandingkan waktunya di sini.</li></ul></section>
+      <section class="panel" aria-labelledby="h-lt"><h2 id="h-lt">Latihan</h2><ul class="checks" id="lab-checks"></ul></section>
+      <section class="panel" aria-labelledby="h-sch"><h2 id="h-sch">Skema</h2><div id="sql-schema" class="small"></div></section>
+    </div></div>`;
+  const ed = $('#sql-ed', box), outEl = $('#sql-out', box);
+  const renderChecks = () => { $('#lab-checks', box).innerHTML = TASKS.map((t, i) => `<li class="${done.has(i) ? 'pass' : 'todo'}">${ico(done.has(i) ? I.check : I.dot)}<span>${t}</span></li>`).join(''); };
+  const one = q => db.exec(q)[0]?.values || [];
+  function renderSchema() {
+    const tables = one("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").map(r => r[0]);
+    const idx = one("SELECT name, tbl_name, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name");
+    $('#sql-schema', box).innerHTML = tables.map(t => {
+      const cols = one(`SELECT name FROM pragma_table_info('${t.replace(/'/g, "''")}')`).map(r => r[0]), n = one(`SELECT COUNT(*) FROM "${t.replace(/"/g, '""')}"`)[0][0];
+      const ix = idx.filter(r => r[1] === t);
+      return `<div class="sch"><b class="mono">${esc(t)}</b> <span class="muted num">${fmt(n)} baris</span><div class="mono muted">${cols.map(esc).join(', ')}</div>${ix.map(r => `<div class="sch-ix">${ico(I.check)}<span class="mono">${esc(r[0])}</span></div>`).join('')}</div>`;
+    }).join('');
+    if (idx.some(r => r[1] === 'users' && /\(\s*email\b/i.test(r[2]))) done.add(1);
+  }
+  function renderRuns() {
+    const max = Math.max(...runs.map(r => r.ms), .1);
+    $('#sql-runs', box).innerHTML = runs.map(r => `<li class="${r.kind}"><code title="${esc(r.sql)}">${esc(r.sql)}</code><span class="bar"><i style="width:${Math.max(1, r.ms / max * 100).toFixed(1)}%"></i><b class="num">${fmtMs(r.ms)}</b></span></li>`).join('');
+  }
+  function planTree(rows) { // [id, parent, notused, detail]
+    const kids = p => rows.filter(r => r[1] === p);
+    const ul = p => kids(p).length ? `<ul>${kids(p).map(r => { const [k, txt] = planKind(r[3]); return `<li><span class="p ${k}"><span class="mono">${esc(r[3])}</span>${txt ? `<small>${txt}</small>` : ''}</span>${ul(r[0])}</li>`; }).join('')}</ul>` : '';
+    return `<div class="plan">${ul(0)}</div>`;
+  }
+  function run() {
+    const sql = ed.value.trim(); if (!sql || !db) return;
+    let res = null, last = null, err = null;
+    const t0 = performance.now();
+    try {
+      // shortcut: query tanpa batas (misalnya CTE rekursif tanpa henti) bisa membekukan tab; cukup untuk lab pribadi di browser.
+      for (const st of db.iterateStatements(sql)) {
+        const cols = st.getColumnNames(), rows = []; let n = 0;
+        while (st.step()) if (n++ < 100) rows.push(st.get());
+        if (cols.length) { res = {cols, rows, n}; last = st.getSQL(); }
+      }
+    } catch (e) { err = e.message; }
+    const ms = performance.now() - t0;
+    let plan = [];
+    if (last && !err) try { plan = one('EXPLAIN QUERY PLAN ' + last); } catch {}
+    const kinds = plan.map(r => planKind(r[3])[0]);
+    if (!err) runs.push({sql: sql.replace(/\s+/g, ' '), ms, kind: kinds.includes('scan') ? 'scan' : kinds.includes('idx') ? 'idx' : ''});
+    if (runs.length > 6) runs.shift();
+    const emailQ = plan.some(r => /\busers\b/.test(r[3]) || /^(SCAN|SEARCH) u\b/.test(r[3])) && /email\s*=/i.test(sql);
+    if (emailQ && plan.some(r => /^SCAN (users|u)\b/.test(r[3]) && !/INDEX/.test(r[3]))) done.add(0);
+    if (emailQ && done.has(1) && plan.some(r => /^SEARCH .*USING (COVERING )?INDEX .*\(email=\?\)/.test(r[3]))) done.add(2);
+    if (plan.some(r => /^SEARCH .*USING (COVERING )?INDEX .*\(user_id=\?\)/.test(r[3]) && !/AUTOMATIC/.test(r[3]))) done.add(3);
+    outEl.innerHTML = err ? `<p class="qres no">${esc(err)}</p>`
+      : (plan.length ? `<h3 class="sub-h">Rencana eksekusi</h3>${planTree(plan)}` : '')
+      + `<p class="muted small res-meta">${res ? `${fmt(res.n)} baris${res.n > 100 ? ', 100 pertama ditampilkan' : ''}` : 'Perintah selesai'}, ${fmtMs(ms)}</p>`
+      + (res && res.cols.length ? `<div class="res-tbl"><table><thead><tr>${res.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${res.rows.map(r => `<tr>${r.map(v => `<td${typeof v === 'number' ? ' class="num"' : ''}>${v === null ? '<span class="muted">NULL</span>' : esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '');
+    renderSchema(); renderRuns(); renderChecks();
+  }
+  async function boot() {
+    $('#sql-run', box).disabled = $('#sql-reset', box).disabled = true;
+    try {
+      const SQL = await loadSqlJs(); if (!alive) return;
+      $('#sql-status', box).textContent = 'Mengisi 100.000 user dan 300.000 pesanan...';
+      await new Promise(r => setTimeout(r, 30)); // beri waktu teks status tampil sebelum pengisian yang memblokir
+      db?.close(); db = new SQL.Database(); db.exec(SQL_SEED);
+      if (!alive) return db.close();
+      $('#sql-run', box).disabled = $('#sql-reset', box).disabled = false;
+      outEl.innerHTML = '<p class="muted">Database siap. Jalankan query di kiri.</p>';
+      renderSchema();
+    } catch (e) { outEl.innerHTML = `<p class="qres no">${esc(e.message)}</p><button class="btn" data-retry>Coba lagi</button>`; }
+  }
+  box.onclick = e => {
+    const ex = e.target.closest('[data-sql]');
+    if (ex) { ed.value = ex.dataset.sql; ed.focus(); }
+    else if (e.target.closest('#sql-run')) run();
+    else if (e.target.closest('#sql-reset')) { runs.length = 0; renderRuns(); outEl.innerHTML = '<p class="muted">Menyiapkan ulang database...</p>'; boot(); }
+    else if (e.target.closest('[data-retry]')) boot();
+  };
+  ed.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); } };
+  renderChecks(); boot();
+  return () => { alive = false; db?.close(); };
+}
+
+function viewLab(kind) {
+  const k = kind === 'sql' ? 'sql' : 'redis';
+  view.innerHTML = `<div class="lab"><header class="page-head"><h1>Lab teknologi</h1><p>${k === 'sql'
+    ? 'SQLite sungguhan yang berjalan di browser lewat WebAssembly, berisi 100.000 user dan 300.000 pesanan. Jalankan query, lalu lihat bagaimana indeks mengubah rencana eksekusi dan waktunya.'
+    : 'Redis menyimpan data di memori dan bisa menghapusnya otomatis lewat TTL. Emulator ini meniru perintah dasarnya di browser, jadi kamu bisa melihat isi memori berubah setiap detik.'}</p></header>
+    <nav class="seg-ctl lab-tabs" aria-label="Pilih lab">${[['redis', 'Redis'], ['sql', 'SQL']].map(([id, n]) => `<a href="#/lab/${id}"${id === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>
+    <div id="lab-main"></div></div>`;
+  return (k === 'sql' ? viewLabSql : viewLabRedis)($('#lab-main'));
+}
+
 /* ---------- Design system ---------- */
 function viewDesign() {
   const sw = (v, name, use) => `<div class="sw"><i style="--v:var(${v})"></i><div><b>${name}</b><code data-var="${v}"></code><br><span class="muted" style="font-size:12.5px">${use}</span></div></div>`;
@@ -1600,7 +1970,7 @@ function adminDiagram(id) {
 }
 
 /* ---------- Shell ---------- */
-$('.rail').innerHTML = [['home', '#/', I.home, 'Beranda'], ['playground', '#/playground', I.nodes, 'Playground'], ['saved', '#/saved', I.bookmark, 'Disimpan'], ['design', '#/design', I.swatch, 'Desain'], ['admin', '#/admin', I.gear, 'Admin']]
+$('.rail').innerHTML = [['home', '#/', I.home, 'Beranda'], ['playground', '#/playground', I.nodes, 'Playground'], ['lab', '#/lab', I.flask, 'Lab'], ['saved', '#/saved', I.bookmark, 'Disimpan'], ['design', '#/design', I.swatch, 'Desain'], ['admin', '#/admin', I.gear, 'Admin']]
   .map(([k, h, i, n]) => `<a href="${h}" data-r="${k}">${ico(i)}${n}</a>`).join('');
 
 let cleanup = null;
@@ -1611,6 +1981,7 @@ function route() {
   if ((m = h.match(/^#\/l\/(\w+)$/))) cleanup = viewLesson(m[1]);
   else if ((m = h.match(/^#\/playground\/share\/([\w-]+)$/))) { cleanup = viewPlayground(null, m[1]); section = 'playground'; }
   else if ((m = h.match(/^#\/playground(?:\/(\w+))?$/))) { cleanup = viewPlayground(m[1]); section = 'playground'; }
+  else if ((m = h.match(/^#\/lab(?:\/(\w+))?$/))) { cleanup = viewLab(m[1]); section = 'lab'; }
   else if (h === '#/design') { cleanup = viewDesign(); section = 'design'; }
   else if ((m = h.match(/^#\/admin(?:\/([ld])\/(\w+))?$/))) { cleanup = viewAdmin(m[1], m[2]); section = 'admin'; }
   else if (h === '#/saved') { cleanup = viewHome(true); section = 'saved'; }

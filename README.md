@@ -43,6 +43,15 @@ Setelah login, progres, simpanan, catatan, hasil kuis, dan tantangan disinkronka
 
 Simpan pertama dari menu Admin otomatis menyalin konten bawaan ke database. Setelah itu, database menjadi sumber konten untuk semua pengunjung.
 
+## Lab teknologi
+
+Menu Lab berisi dua lab:
+
+- **Redis:** emulator Redis di JS. Isi memori dan sisa TTL setiap kunci tampil langsung.
+- **SQL:** SQLite asli lewat [sql.js](https://sql.js.org) dengan 100.000 user dan 300.000 pesanan. Setiap query menampilkan rencana eksekusi dan waktunya, jadi efek indeks langsung terlihat.
+
+sql.js (sekitar 700 KB) hanya diunduh saat lab SQL dibuka.
+
 ## Pasang di HP dan mode offline
 
 Situs ini bisa dipasang sebagai aplikasi (PWA) dari menu browser, misalnya "Tambahkan ke layar utama". [prototype/sw.js](prototype/sw.js) menyimpan salinan halaman dan font setiap kali dibuka. Jadi pelajaran dan playground tetap jalan tanpa internet, setelah situs pernah dibuka sekali. Saat online, versi terbaru selalu diambil lebih dulu.
