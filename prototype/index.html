@@ -304,6 +304,12 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .board table{width:100%;border-collapse:collapse;margin-top:8px}.board th,.board td{padding:5px 4px;text-align:left;border-bottom:1px solid var(--rule)}
 .board th{font-size:12px;color:var(--ink-2)}.board td.num{text-align:right;white-space:nowrap}.board th:not(:first-child){text-align:right}
 .board tr[aria-current]{font-weight:700}
+.my-save{display:flex;gap:8px}.my-save input{flex:1;min-width:0;height:34px;padding:0 10px;border:1px solid var(--rule);border-radius:var(--r-s);background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px}
+.my-save input:focus-visible{outline:2px solid var(--focus);outline-offset:1px}.my-save .btn{height:34px}
+#pg-save-msg{margin-top:8px}.my-list{list-style:none;display:grid;gap:6px;margin-top:10px}
+.my-list li{display:flex;align-items:center;gap:8px;min-width:0}.my-list li.muted{font-size:13.5px}
+.my-list a{flex:1;min-width:0;display:grid;padding:6px 10px;border-radius:var(--r-s);background:var(--sunk);text-decoration:none;color:var(--ink)}
+.my-list a:hover{background:color-mix(in oklab,var(--sunk) 70%,var(--rule))}.my-list b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.my-list a span{font-size:12px}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13.5px;color:var(--ink-2);cursor:pointer}.chk input{margin-top:3px;accent-color:var(--ink)}
 .kpi{width:100%;max-width:860px;border-collapse:collapse;font-size:14px;background:var(--surface);border-radius:var(--r-m);overflow:hidden}
 .kpi th,.kpi td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--rule)}.kpi th{font-size:12.5px;color:var(--ink-2);background:var(--sunk)}
@@ -433,9 +439,9 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement, view = $('#view');
 
 const store = (() => {
-  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}, theme: null};
+  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}, designs: {}, theme: null};
   try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
-  s.edits ||= {}; s.srs ||= {}; s.best ||= {}; // data lama belum punya field ini
+  s.edits ||= {}; s.srs ||= {}; s.best ||= {}; s.designs ||= {}; // data lama belum punya field ini
   return {s, onSave: null, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} this.onSave?.(); }};
 })();
 
@@ -1123,6 +1129,7 @@ function decodeDesign(code) {
   } catch { return null; }
 }
 
+const MAX_DESIGNS = 50;
 function viewPlayground(presetId, shared) {
   const pre = PRESETS[presetId] ? presetId : 'lb', got = shared ? decodeDesign(shared) : null, opened = Date.now();
   track('pg_open', {preset: got ? 'share' : pre, source: nav.take().source});
@@ -1148,6 +1155,9 @@ function viewPlayground(presetId, shared) {
         <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan <span class="muted num" id="pg-chal-n"></span></h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul><p class="best" id="pg-best"></p>
           <details class="board"><summary>Papan skor pribadi</summary><div id="pg-board"></div></details></section>
         <section class="panel" id="pg-insp" aria-label="Pengaturan komponen"></section>
+        <section class="panel" aria-labelledby="h-my"><h2 id="h-my">Desainku</h2>
+          <form class="my-save" id="pg-save"><label class="skip" for="pg-name">Nama desain</label><input id="pg-name" maxlength="60" required placeholder="Misalnya: toko dengan cache"><button class="btn sm pri">Simpan</button></form>
+          <p class="muted small" id="pg-save-msg" aria-live="polite"></p><ul class="my-list" id="pg-my"></ul></section>
       </div>
     </div></div>`;
   const cv = $('#pg-cv'), ctx = cv.getContext('2d'), wrap = $('.cv-wrap', view);
@@ -1347,6 +1357,12 @@ function viewPlayground(presetId, shared) {
     if (un) { g.edges = g.edges.filter(([a, b]) => !(a === sel.id && b === un.dataset.unlink)); graphChanged(); change('unlink'); return; }
     if (e.target.closest('#pg-del') && sel) { g.edges = g.edges.filter(([a, b]) => a !== sel.id && b !== sel.id); g.nodes = g.nodes.filter(n => n !== sel); sel = null; graphChanged(); change('delete'); return; }
     if (e.target.closest('#pg-run')) { running = !running; setRun(); kick(); return; }
+    const dd = e.target.closest('[data-del-design]')?.dataset.delDesign;
+    if (dd && store.s.designs[dd]) {
+      const n = store.s.designs[dd].name;
+      if (!confirm(`Hapus desain “${n}”?`)) return;
+      delete store.s.designs[dd]; mark('d:' + dd, false); store.save(); renderMine(`Desain “${n}” dihapus.`); return;
+    }
     if (e.target.closest('#pg-share')) {
       const url = `${location.origin}${location.pathname}#/playground/share/${encodeDesign(g, rps)}`, msg = $('#pg-share-msg');
       history.replaceState(null, '', url);
@@ -1372,13 +1388,33 @@ function viewPlayground(presetId, shared) {
     else if (t.id === 'pg-chal') { chal = +t.value; rps = CHALLENGES[chal].rps; $('#pg-rps').value = rps; recompute(); }
   };
 
+  // Desainku: disimpan dalam format tautan bagikan, lokal dulu lalu ikut sinkron ke akun.
+  function renderMine(msg) {
+    const list = Object.entries(store.s.designs).sort((a, b) => b[1].t - a[1].t);
+    if (msg != null) $('#pg-save-msg').textContent = msg;
+    else $('#pg-save-msg').textContent = auth.user ? 'Tersimpan di akunmu dan bisa dibuka dari perangkat lain.' : 'Tersimpan di browser ini. Masuk untuk membawanya ke perangkat lain.';
+    $('#pg-my').innerHTML = list.length ? list.map(([id, d]) => `<li><a href="#/playground/share/${d.code}"><b>${esc(d.name)}</b><span class="muted">${fmt(d.n)} komponen, ${fmt(d.rps)} rps, ${new Date(d.t).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</span></a><button class="btn ghost sm" data-del-design="${id}" aria-label="Hapus ${esc(d.name)}">Hapus</button></li>`).join('')
+      : '<li class="muted">Belum ada desain tersimpan.</li>';
+  }
+  const mine = Object.values(store.s.designs).find(d => d.code === shared);
+  if (mine) $('#pg-name').value = mine.name;
+  view.onsubmit = e => {
+    e.preventDefault();
+    const name = $('#pg-name').value.trim(); if (!name) return;
+    const old = Object.entries(store.s.designs).find(([, d]) => d.name === name), id = old?.[0] || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    if (!old && Object.keys(store.s.designs).length >= MAX_DESIGNS) return renderMine(`Maksimal ${MAX_DESIGNS} desain. Hapus salah satu dulu.`);
+    store.s.designs[id] = {name, code: encodeDesign(g, rps), n: g.nodes.length, rps, t: Date.now()};
+    mark('d:' + id, true); store.save(); change('save');
+    renderMine(old ? `Desain “${name}” diperbarui.` : `Desain “${name}” disimpan.`);
+  };
+  renderMine();
   const onTheme = () => { readPal(); kick(); };
   addEventListener('themechange', onTheme);
   const ro = new ResizeObserver(resize); ro.observe(wrap);
   const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); }); io.observe(cv);
   readPal(); setRun(); setHint(); graphChanged(); resize();
   document.fonts?.ready.then(kick);
-  return () => { cancelAnimationFrame(raf); raf = -1; ro.disconnect(); io.disconnect(); removeEventListener('keydown', onKey); removeEventListener('themechange', onTheme); view.onclick = view.oninput = view.onchange = null; };
+  return () => { cancelAnimationFrame(raf); raf = -1; ro.disconnect(); io.disconnect(); removeEventListener('keydown', onKey); removeEventListener('themechange', onTheme); view.onclick = view.oninput = view.onchange = view.onsubmit = null; };
 }
 
 /* ---------- Lab: Redis ---------- */
@@ -1967,13 +2003,13 @@ async function setUser(u) {
 }
 
 /* ---------- Sinkron progres ---------- */
-const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits', 'srs', 'best'];
+const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits', 'srs', 'best', 'designs'];
 // Jejak kapan simpanan ('s:id') atau catatan ('n:pelajaran:id') terakhir ditambah/dihapus, agar hapusan ikut tersinkron.
 const mark = (k, on) => { store.s.edits[k] = {t: Date.now(), on}; };
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 // Data dari server dibersihkan per field; nilai yang bentuknya salah dibuang, bukan merusak state lokal.
 function cleanState(d) {
-  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}};
+  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, best: {}, designs: {}};
   if (!isObj(d)) return o;
   if (isObj(d.progress)) for (const [k, v] of Object.entries(d.progress)) if (typeof v === 'number' && v >= 0 && v <= 1) o.progress[k] = v;
   if (Array.isArray(d.saved)) o.saved = d.saved.filter(x => typeof x === 'string');
@@ -1981,6 +2017,8 @@ function cleanState(d) {
   for (const key of ['quiz', 'chal']) if (isObj(d[key])) for (const [k, v] of Object.entries(d[key])) if (typeof v === 'boolean') o[key][k] = v;
   if (isObj(d.edits)) for (const [k, v] of Object.entries(d.edits)) if (isObj(v) && typeof v.t === 'number' && typeof v.on === 'boolean') o.edits[k] = {t: v.t, on: v.on};
   if (isObj(d.srs)) for (const [k, v] of Object.entries(d.srs)) if (isObj(v) && Number.isInteger(v.b) && v.b >= 0 && v.b < SRS_DAYS.length && typeof v.due === 'number' && typeof v.t === 'number') o.srs[k] = {b: v.b, due: v.due, t: v.t};
+  // Kode desain hanya dicek bentuknya di sini; isinya divalidasi decodeDesign saat dibuka.
+  if (isObj(d.designs)) for (const [k, v] of Object.entries(d.designs)) if (isObj(v) && typeof v.name === 'string' && v.name.trim() && v.name.length <= 60 && typeof v.code === 'string' && /^[\w-]{1,6000}$/.test(v.code) && [v.n, v.rps, v.t].every(x => Number.isFinite(x) && x >= 0)) o.designs[k] = {name: v.name, code: v.code, n: v.n, rps: v.rps, t: v.t};
   if (isObj(d.best)) for (const [k, v] of Object.entries(d.best)) if (isObj(v) && [v.cost, v.lat, v.t].every(x => Number.isFinite(x) && x >= 0)) o.best[k] = {cost: v.cost, lat: v.lat, t: v.t};
   return o;
 }
@@ -1988,14 +2026,16 @@ function cleanState(d) {
 // Simpanan/catatan yang perubahan terakhirnya berupa hapus dibuang dari hasil gabungan.
 // shortcut: memakai jam perangkat dan jejak edits tidak pernah dipangkas; cukup selama jumlahnya ratusan, bukan jutaan.
 function mergeState(a, b) {
-  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}, srs: {...a.srs}, best: {...a.best}};
+  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}, srs: {...a.srs}, best: {...a.best}, designs: {...a.designs}};
   for (const [k, v] of Object.entries(b.progress)) m.progress[k] = Math.max(m.progress[k] || 0, v);
   for (const [k, list] of Object.entries(b.notes)) { const ids = new Set((m.notes[k] || []).map(n => n.id)); m.notes[k] = [...(m.notes[k] || []), ...list.filter(n => !ids.has(n.id))]; }
   for (const key of ['quiz', 'chal']) for (const [k, v] of Object.entries(b[key])) m[key][k] = m[key][k] || v;
   for (const [k, v] of Object.entries(b.best)) if (betterRun(v, m.best[k])) m.best[k] = v; // rekor terbaik menang
+  for (const [k, v] of Object.entries(b.designs)) if (!m.designs[k] || v.t > m.designs[k].t) m.designs[k] = v;
   for (const key of ['edits', 'srs']) for (const [k, v] of Object.entries(b[key])) if (!m[key][k] || v.t > m[key][k].t) m[key][k] = v; // yang terakhir diubah menang
   const gone = k => m.edits[k]?.on === false;
   m.saved = m.saved.filter(id => !gone('s:' + id));
+  for (const k in m.designs) if (gone('d:' + k)) delete m.designs[k];
   for (const k in m.notes) m.notes[k] = m.notes[k].filter(n => !gone(`n:${k}:${n.id}`));
   return m;
 }
@@ -2015,6 +2055,9 @@ function mergeState(a, b) {
   console.assert(R.srs['f1:0'].b === 2 && R.srs['f1:1'].b === 0 && !('x' in R.srs), 'sync: jadwal ulang terakhir menang, data rusak dibuang');
   const B2 = mergeState(cleanState({best: {0: {cost: 500, lat: 90, t: 1}, 1: {cost: 300, lat: 50, t: 1}}}), cleanState({best: {0: {cost: 400, lat: 120, t: 2}, 1: {cost: 300, lat: 40, t: 2}, 2: {cost: -1, lat: 1, t: 1}}}));
   console.assert(B2.best[0].cost === 400 && B2.best[1].lat === 40 && !(2 in B2.best), 'sync: rekor termurah menang, data rusak dibuang');
+  const D = mergeState(cleanState({designs: {a: {name: 'lama', code: 'x', n: 2, rps: 100, t: 1}, b: {name: 'b', code: 'y', n: 1, rps: 1, t: 1}}}),
+    cleanState({designs: {a: {name: 'baru', code: 'z', n: 3, rps: 200, t: 2}, c: {name: 'jahat', code: '<script>', n: 1, rps: 1, t: 1}}, edits: {'d:b': {t: 5, on: false}}}));
+  console.assert(D.designs.a.name === 'baru' && !D.designs.b && !D.designs.c, 'sync: desain terbaru menang, hapusan dan kode rusak dibuang');
 })();
 
 const sync = {
