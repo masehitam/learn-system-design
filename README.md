@@ -45,6 +45,17 @@ Setiap pelajaran punya kuis 3–5 soal yang bisa diubah di menu Admin dengan for
 
 Simpan pertama dari menu Admin otomatis menyalin konten bawaan ke database. Setelah itu, database menjadi sumber konten untuk semua pengunjung.
 
+## Analitik
+
+Saat Supabase tersambung, aplikasi mengirim event anonim dari PRD §12 ke tabel `events`. Event dikirim berkelompok setiap 5 detik, dan saat tab ditutup.
+
+- **Privasi:** tanpa cookie dan tanpa akun. Setiap event hanya membawa ID acak per perangkat (`vid`) dan per sesi (`sid`). Teks pencarian tidak dikirim, hanya panjangnya.
+- **Mematikan:** pengiriman mati sendiri jika browser mengaktifkan Do Not Track atau Global Privacy Control. Pengguna juga bisa mematikannya lewat kotak centang di jendela akun.
+- **Siapa yang bisa membaca:** siapa pun boleh menulis event, tapi hanya admin yang bisa membacanya.
+- **Metrik:** view `metrics_summary` menghitung metrik PRD §5, yaitu North Star, aktivasi, kedalaman, retensi D7/D30, pemahaman, adopsi playground, tantangan, pencarian, error JS, dan web vitals. Hasilnya tampil di menu Admin, di bagian Analitik.
+
+Tabel `events` terbuka untuk ditulis siapa pun, jadi bisa diisi spam. Kalau itu terjadi, aktifkan rate limiting di Supabase atau pindahkan pengiriman ke Edge Function.
+
 ## Lab teknologi
 
 Menu Lab berisi dua lab:

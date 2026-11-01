@@ -277,6 +277,8 @@ Struktur data lokal (MVP): `{ progress: {id: 0..1}, saved: [id], notes: {id: [{t
 
 ## 12. Event analitik
 
+Status prototype: semua event di tabel ini sudah dikirim ke tabel Supabase `events` (anonim, tanpa cookie, mengikuti Do Not Track/GPC, bisa dimatikan pengguna), ditambah `session_start`, `lab_open`, dan `js_error`. Metrik §5 dihitung oleh view `metrics_summary` dan tampil di menu Admin.
+
 | Event | Properti | Dipakai untuk |
 |---|---|---|
 | `lesson_open` | lesson_id, source (grid, map, search, next, direct) | Funnel, sumber penemuan |

@@ -304,6 +304,10 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .board table{width:100%;border-collapse:collapse;margin-top:8px}.board th,.board td{padding:5px 4px;text-align:left;border-bottom:1px solid var(--rule)}
 .board th{font-size:12px;color:var(--ink-2)}.board td.num{text-align:right;white-space:nowrap}.board th:not(:first-child){text-align:right}
 .board tr[aria-current]{font-weight:700}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13.5px;color:var(--ink-2);cursor:pointer}.chk input{margin-top:3px;accent-color:var(--ink)}
+.kpi{width:100%;max-width:860px;border-collapse:collapse;font-size:14px;background:var(--surface);border-radius:var(--r-m);overflow:hidden}
+.kpi th,.kpi td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--rule)}.kpi th{font-size:12.5px;color:var(--ink-2);background:var(--sunk)}
+.kpi td.num{text-align:right;white-space:nowrap}.kpi th:nth-child(2),.kpi th:nth-child(4){text-align:right}
 .conns{list-style:none;display:grid;gap:4px;margin-top:6px;font-size:14px}
 .conns li{display:flex;justify-content:space-between;align-items:center;gap:8px}
 #pg-del{margin-top:16px}
@@ -747,6 +751,7 @@ function viewHome(saved) {
     if (c) F.cat = c.dataset.cat; else if (v) F.lv = +v.dataset.lv;
     else if (e.target.closest('[data-clear]')) { F.q = ''; F.cat = 'all'; F.lv = -1; $('#q').value = ''; }
     else return;
+    track('filter_change', {category: F.cat, level: F.lv});
     render();
   };
   render();
@@ -781,7 +786,7 @@ function mountPlayer(el, D, onStep) {
     $$('.edge', el).forEach(e => { e.classList.toggle('on', on.has(e.dataset.e)); e.classList.toggle('cut', (s.cut || []).includes(e.dataset.e)); });
     $('.cap b', el).textContent = `${i + 1}. ${s.t}`;
     $('.cap span', el).textContent = s.d;
-    onStep(i, steps.length);
+    onStep(i, steps.length, speed);
   }
   function spawn(f) {
     const p = pool.find(p => !p.live); if (!p) return;
@@ -812,7 +817,7 @@ function mountPlayer(el, D, onStep) {
     const i = Math.min(steps.length - 1, Math.floor(t / STEP));
     if (i !== cur) apply(i);
     draw(dt); ui();
-    if (t >= total) { pause(); onStep(steps.length, steps.length); return; }
+    if (t >= total) { pause(); onStep(steps.length, steps.length, speed); return; }
     raf = requestAnimationFrame(frame);
   }
   function setBtn() { playBtn.innerHTML = ico(playing ? I.pause : I.play); playBtn.setAttribute('aria-label', playing ? 'Jeda' : 'Putar'); }
@@ -868,7 +873,12 @@ function viewLesson(id) {
   const l = L.find(x => x.id === id);
   if (!l) { location.replace('#/'); return null; }
   const lab = l.cat === 'cache' || l.id === 'r1' || l.id === 'm1' ? 'redis' : l.cat === 'storage' ? 'sql' : null; // lab yang relevan untuk pelajaran ini
-  const QS = quizOf(l);
+  const QS = quizOf(l), opened = Date.now(), from = nav.take();
+  track('lesson_open', {lesson_id: l.id, source: from.source, ...(from.rank ? {rank: from.rank} : {})});
+  // Pelajaran tuntas (North Star) = animasi selesai dan kuis lulus, dalam urutan apa pun.
+  const tuntas = () => prog(l.id) >= 1 && !!store.s.quiz[l.id];
+  let wasTuntas = tuntas();
+  const checkTuntas = () => { if (!wasTuntas && tuntas()) { wasTuntas = true; track('lesson_complete', {lesson_id: l.id, duration_ms: Date.now() - opened}); } };
   const D = DG[l.dg], c = CAT[l.cat], idx = L.indexOf(l), next = [...L.slice(idx + 1), ...L.slice(0, idx)].slice(0, 8);
   const saved = store.s.saved.includes(l.id), done = prog(l.id) >= 1;
   view.innerHTML = `<div class="watch" style="--cat:var(${c.v})"><div>
@@ -910,10 +920,11 @@ function viewLesson(id) {
 
   const doneBtn = $('[data-done]', view);
   function setDone(v) {
-    store.s.progress[l.id] = v; store.save();
+    store.s.progress[l.id] = v; store.save(); checkTuntas();
     doneBtn.setAttribute('aria-pressed', v >= 1); $('.lbl', doneBtn).textContent = v >= 1 ? 'Selesai' : 'Tandai selesai';
   }
-  const player = mountPlayer($('.player', view), D, (i, n) => {
+  const player = mountPlayer($('.player', view), D, (i, n, speed) => {
+    if (i > 0) track('lesson_step', {lesson_id: l.id, step: i, speed});
     $$('.steps button', view).forEach((b, j) => j === i ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
     if (i / n > prog(l.id)) setDone(i / n);
     $('.nt-time', view).textContent = mmss(i * STEP);
@@ -930,15 +941,17 @@ function viewLesson(id) {
     const t = tabs[(i + d + tabs.length) % tabs.length]; select(t); t.focus();
   };
 
-  let scheduled = false; // hanya percobaan pertama yang masuk jadwal ulang; percobaan berikutnya sudah melihat penjelasan
+  let attempt = 0, scheduled = false; // hanya percobaan pertama yang masuk jadwal ulang; percobaan berikutnya sudah melihat penjelasan
   $('.quiz', view).onsubmit = e => {
     e.preventDefault();
     const res = gradeQuiz(e.target, QS), r = $('.qres', view);
     if (!res) return;
     const right = res.filter(Boolean).length, pass = right === QS.length;
+    attempt++;
+    res.forEach((ok, i) => track('quiz_answer', {lesson_id: l.id, q: i, correct: ok, attempt}));
     if (!scheduled) { scheduled = true; res.forEach((ok, i) => recordSrs(`${l.id}:${i}`, ok)); }
     if (pass) store.s.quiz[l.id] = true;
-    store.save();
+    store.save(); checkTuntas();
     r.className = 'qres ' + (pass ? 'ok' : 'no');
     r.textContent = pass ? `Semua ${right} jawaban benar. Kuis lulus dan tersimpan di progresmu.` : `${right} dari ${QS.length} benar. Baca penjelasannya, ubah jawaban yang salah, lalu periksa lagi.`;
   };
@@ -953,7 +966,7 @@ function viewLesson(id) {
     if (e.target.closest('[data-addnote]')) {
       const ta = $('#nt', view), text = ta.value.trim();
       if (!text) { ta.focus(); return; }
-      notes().push({id: Date.now().toString(36), t: Math.floor(player.time()), text}); store.save(); ta.value = ''; renderNotes();
+      notes().push({id: Date.now().toString(36), t: Math.floor(player.time()), text}); store.save(); track('note_add', {lesson_id: l.id}); ta.value = ''; renderNotes();
     }
     const tl = e.target.closest('[data-t]'); if (tl) player.seekTime(+tl.dataset.t);
     const del = e.target.closest('[data-del]');
@@ -1111,7 +1124,9 @@ function decodeDesign(code) {
 }
 
 function viewPlayground(presetId, shared) {
-  const pre = PRESETS[presetId] ? presetId : 'lb', got = shared ? decodeDesign(shared) : null;
+  const pre = PRESETS[presetId] ? presetId : 'lb', got = shared ? decodeDesign(shared) : null, opened = Date.now();
+  track('pg_open', {preset: got ? 'share' : pre, source: nav.take().source});
+  const change = action => track('pg_change', {action});
   let g = got ? got.g : PRESETS[pre].build(), rps = got ? got.rps : 3000, chal = 0, running = !reduced, sel = null, connecting = false, from = null;
   let sim, packets = [], sparks = [], acc = [], raf = 0, last = 0, visible = true, drag = null, pointer = null, pal, scale = 1, dpr = 1;
   const types = ['client', 'lb', 'server', 'cache', 'db', 'queue', 'cdn'];
@@ -1168,6 +1183,7 @@ function viewPlayground(presetId, shared) {
       const run = {cost: sim.cost, lat: sim.lat, t: Date.now()}, first = !store.s.chal[chal];
       if (first || betterRun(run, store.s.best[chal])) {
         store.s.chal[chal] = true; store.s.best[chal] = run; store.save();
+        if (first) track('pg_challenge_complete', {challenge_id: chal, time_ms: Date.now() - opened, cost: Math.round(sim.cost)});
         if (first) $('#pg-chal').options[chal].text = `${C.name} (selesai)`;
       }
     }
@@ -1302,7 +1318,7 @@ function viewPlayground(presetId, shared) {
     if (connecting) {
       if (!n) { from = null; }
       else if (!from) from = n;
-      else { if (canLink(from, n)) { g.edges.push([from.id, n.id]); sel = from; graphChanged(); } from = null; }
+      else { if (canLink(from, n)) { g.edges.push([from.id, n.id]); sel = from; graphChanged(); change('link'); } from = null; }
       setHint(); kick(); return;
     }
     sel = n; renderInspector();
@@ -1325,11 +1341,11 @@ function viewPlayground(presetId, shared) {
     if (add) {
       const k = g.nodes.length;
       const n = mkNode(add.dataset.add, 120 + (k * 97) % 660, 70 + (k * 61) % 380, g);
-      g.nodes.push(n); sel = n; graphChanged(); return;
+      g.nodes.push(n); sel = n; graphChanged(); change('add'); return;
     }
     const un = e.target.closest('[data-unlink]');
-    if (un) { g.edges = g.edges.filter(([a, b]) => !(a === sel.id && b === un.dataset.unlink)); graphChanged(); return; }
-    if (e.target.closest('#pg-del') && sel) { g.edges = g.edges.filter(([a, b]) => a !== sel.id && b !== sel.id); g.nodes = g.nodes.filter(n => n !== sel); sel = null; graphChanged(); return; }
+    if (un) { g.edges = g.edges.filter(([a, b]) => !(a === sel.id && b === un.dataset.unlink)); graphChanged(); change('unlink'); return; }
+    if (e.target.closest('#pg-del') && sel) { g.edges = g.edges.filter(([a, b]) => a !== sel.id && b !== sel.id); g.nodes = g.nodes.filter(n => n !== sel); sel = null; graphChanged(); change('delete'); return; }
     if (e.target.closest('#pg-run')) { running = !running; setRun(); kick(); return; }
     if (e.target.closest('#pg-share')) {
       const url = `${location.origin}${location.pathname}#/playground/share/${encodeDesign(g, rps)}`, msg = $('#pg-share-msg');
@@ -1348,9 +1364,11 @@ function viewPlayground(presetId, shared) {
   };
   view.onchange = e => {
     const t = e.target;
-    if (t.id === 'pg-preset') { g = PRESETS[t.value].build(); sel = null; from = null; graphChanged(); history.replaceState(null, '', `#/playground/${t.value}`); }
+    if (t.id === 'pg-preset') { g = PRESETS[t.value].build(); sel = null; from = null; graphChanged(); history.replaceState(null, '', `#/playground/${t.value}`); change('preset'); }
+    else if (t.id === 'pg-cap' || t.id === 'pg-hit') change('capacity');
+    else if (t.id === 'pg-rps') change('traffic');
     else if (t.id === 'pg-sel') { sel = byId(t.value) || null; renderInspector(); kick(); $('#pg-sel')?.focus(); }
-    else if (t.id === 'pg-link' && t.value) { g.edges.push([sel.id, t.value]); graphChanged(); $('#pg-link')?.focus(); }
+    else if (t.id === 'pg-link' && t.value) { g.edges.push([sel.id, t.value]); graphChanged(); change('link'); $('#pg-link')?.focus(); }
     else if (t.id === 'pg-chal') { chal = +t.value; rps = CHALLENGES[chal].rps; $('#pg-rps').value = rps; recompute(); }
   };
 
@@ -1679,6 +1697,7 @@ function viewLabSql(box) {
 
 function viewLab(kind) {
   const k = kind === 'sql' ? 'sql' : 'redis';
+  track('lab_open', {lab: k, source: nav.take().source});
   view.innerHTML = `<div class="lab"><header class="page-head"><h1>Lab teknologi</h1><p>${k === 'sql'
     ? 'SQLite sungguhan yang berjalan di browser lewat WebAssembly, berisi 100.000 user dan 300.000 pesanan. Jalankan query, lalu lihat bagaimana indeks mengubah rencana eksekusi dan waktunya.'
     : 'Redis menyimpan data di memori dan bisa menghapusnya otomatis lewat TTL. Emulator ini meniru perintah dasarnya di browser, jadi kamu bisa melihat isi memori berubah setiap detik.'}</p></header>
@@ -1708,7 +1727,7 @@ function viewReview() {
     const res = gradeQuiz(form, items.map(x => x.q)), r = $('.qres', form);
     if (!res) return;
     graded = true;
-    res.forEach((ok, i) => recordSrs(items[i].key, ok));
+    res.forEach((ok, i) => { recordSrs(items[i].key, ok); track('quiz_answer', {lesson_id: items[i].l.id, q: +items[i].key.split(':')[1], correct: ok, attempt: 1, source: 'review'}); });
     store.save();
     const right = res.filter(Boolean).length, left = dueQuestions().length;
     r.className = 'qres ' + (right === res.length ? 'ok' : 'no');
@@ -1776,6 +1795,58 @@ const CFG = window.ALUR_CONFIG || {};
 const SB_ON = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
 const auth = {sb: null, user: null, admin: !SB_ON};
 const BUILTIN = structuredClone({L, DG});
+
+/* ---------- Analitik ---------- */
+// Event anonim (PRD §12) dikirim berkelompok ke tabel Supabase `events`: tanpa cookie, tanpa akun, tanpa teks pencarian.
+// Mati jika Do Not Track/GPC aktif atau user mematikannya di jendela akun.
+const analytics = (() => {
+  const ls = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } };
+  let vid = null, sid = null;
+  const a = {
+    q: [], timer: 0, errors: 0,
+    get enabled() { return navigator.doNotTrack !== '1' && navigator.globalPrivacyControl !== true && ls('alur-noanalytics') !== '1'; },
+    set enabled(on) { ls('alur-noanalytics', on ? '0' : '1'); if (!on) a.q.length = 0; },
+    send: SB_ON ? body => fetch(`${CFG.supabaseUrl}/rest/v1/events`, {method: 'POST', keepalive: true, body,
+      headers: {apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal'}}) : null,
+    track(name, props = {}) {
+      if (!a.send || !a.enabled) return;
+      if (!vid) { vid = ls('alur-vid') || crypto.randomUUID(); ls('alur-vid', vid); }
+      if (!sid) { try { sid = sessionStorage.getItem('alur-sid') || crypto.randomUUID(); sessionStorage.setItem('alur-sid', sid); } catch { sid = crypto.randomUUID(); } }
+      a.q.push({name, vid, sid, props});
+      clearTimeout(a.timer);
+      if (a.q.length >= 20) a.flush(); else a.timer = setTimeout(a.flush, 5000);
+    },
+    flush() {
+      clearTimeout(a.timer);
+      if (a.q.length) a.send(JSON.stringify(a.q.splice(0, 50))).catch(() => {}); // statistik boleh hilang; jangan ganggu user
+    },
+  };
+  return a;
+})();
+const track = (name, props) => analytics.track(name, props);
+// Sumber navigasi untuk lesson_open/pg_open/lab_open, dicatat saat tautan diklik dan dipakai oleh halaman tujuan.
+const nav = {src: null, take() { const x = this.src && Date.now() - this.src.t < 3000 ? this.src : {source: 'direct'}; this.src = null; return x; }};
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#/"]'); if (!a) return;
+  const card = a.closest('.grid .card');
+  nav.src = {t: Date.now(), source: a.closest('.rail') ? 'nav' : a.closest('.map') ? 'map' : a.closest('.next') ? 'next' : card ? (F.q ? 'search' : 'grid')
+    : a.closest('.review') ? 'review' : location.hash.startsWith('#/l/') ? 'lesson' : 'link', ...(card && F.q ? {rank: $$('.grid .card').indexOf(card) + 1} : {})};
+}, true);
+const routeName = () => location.hash.split('/')[1] || 'home';
+addEventListener('error', e => { if (analytics.errors++ < 5) track('js_error', {msg: String(e.message).slice(0, 120), route: routeName()}); });
+addEventListener('unhandledrejection', e => { if (analytics.errors++ < 5) track('js_error', {msg: String(e.reason?.message || e.reason).slice(0, 120), route: routeName()}); });
+// Web vitals sederhana: LCP, CLS, dan INP (perkiraan: interaksi terlama), dikirim sekali saat tab disembunyikan.
+const vitals = {lcp: 0, cls: 0, inp: 0, sent: false};
+try {
+  new PerformanceObserver(l => l.getEntries().forEach(e => vitals.lcp = Math.round(e.startTime))).observe({type: 'largest-contentful-paint', buffered: true});
+  new PerformanceObserver(l => l.getEntries().forEach(e => { if (!e.hadRecentInput) vitals.cls += e.value; })).observe({type: 'layout-shift', buffered: true});
+  new PerformanceObserver(l => l.getEntries().forEach(e => { if (e.interactionId) vitals.inp = Math.max(vitals.inp, Math.round(e.duration)); })).observe({type: 'event', durationThreshold: 40, buffered: true});
+} catch {}
+addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  if (!vitals.sent) { vitals.sent = true; track('perf_vitals', {lcp: vitals.lcp, inp: vitals.inp, cls: Math.round(vitals.cls * 1000) / 1000, route: routeName()}); }
+  analytics.flush();
+});
 
 function checkDiagram(d) {
   const e = [];
@@ -1984,9 +2055,12 @@ function renderAccount() {
        <form class="magic" data-magic><label class="skip" for="mg-email">Alamat email</label><input id="mg-email" type="email" name="email" required autocomplete="email" placeholder="nama@email.com"${SB_ON ? '' : ' disabled'}><button class="btn pri"${SB_ON ? '' : ' disabled'}>Kirim tautan</button></form>
        <p class="qres" id="mg-msg" aria-live="polite"></p>
        ${SB_ON ? '' : '<p class="note">Login belum aktif di situs ini. Isi URL dan anon key Supabase di config.js untuk menyalakannya.</p>'}`;
+  const dnt = navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true;
+  if (SB_ON) $('#acct-body').insertAdjacentHTML('beforeend', `<label class="chk"><input type="checkbox" data-analytics${analytics.enabled ? ' checked' : ''}${dnt ? ' disabled' : ''}><span>Kirim statistik pemakaian anonim untuk memperbaiki materi${dnt ? '. Mati karena browsermu meminta untuk tidak dilacak.' : ''}</span></label>`);
   $$('.rail [data-r=admin]').forEach(a => a.hidden = !auth.admin);
 }
 $('#acct').onclick = () => $('#acct-dlg').showModal();
+$('#acct-dlg').onchange = e => { if (e.target.matches('[data-analytics]')) analytics.enabled = e.target.checked; };
 $('#acct-dlg').onsubmit = async e => {
   e.preventDefault();
   const f = e.target, msg = $('#mg-msg'), btn = $('button', f), email = f.elements.email.value.trim();
@@ -2012,6 +2086,30 @@ const DG_TEMPLATE = {nodes: [['c', 'client', 60, 90, 'Client'], ['s', 'server', 
 const fmtDG = d => `{\n  "nodes": [\n${d.nodes.map(n => '    ' + JSON.stringify(n)).join(',\n')}\n  ],\n  "edges": ${JSON.stringify(d.edges)},\n  "steps": [\n${d.steps.map(s => '    ' + JSON.stringify(s)).join(',\n')}\n  ],\n  "quiz": ${JSON.stringify(d.quiz)}\n}`;
 const errList = e => e.length ? `<ul class="errs">${e.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
 
+// Metrik keberhasilan PRD §5 dan anggaran performa §10, dari view metrics_summary.
+const ms = v => fmt(v) + ' ms';
+const KPI = [
+  ['north_star', 'Pelajaran tuntas, 7 hari terakhir', fmt, 'North Star'],
+  ['activation', 'Aktivasi: tuntas 1 pelajaran di sesi pertama', pct, '≥ 45%'],
+  ['depth', 'Kedalaman: median pelajaran tuntas per user aktif, 7 hari', v => v.toLocaleString('id-ID', {maximumFractionDigits: 1}), '≥ 3'],
+  ['d7', 'Retensi D7', pct, '≥ 25%'],
+  ['d30', 'Retensi D30', pct, '≥ 12%'],
+  ['comprehension', 'Pemahaman: benar di percobaan pertama, 30 hari', pct, '60–80%'],
+  ['pg_adoption', 'Adopsi playground, 7 hari', pct, '≥ 30%'],
+  ['challenge', 'User playground yang menyelesaikan tantangan, 30 hari', pct, '≥ 40%'],
+  ['search_ctr', 'Pencarian yang diikuti klik pelajaran, 7 hari', pct, '≥ 55%'],
+  ['js_error', 'Sesi dengan error JavaScript, 7 hari', pct, '< 0,5%'],
+  ['lcp_p75', 'LCP p75', ms, '≤ 2.500 ms'],
+  ['inp_p75', 'INP p75', ms, '≤ 200 ms'],
+  ['cls_p75', 'CLS p75', v => v.toLocaleString('id-ID', {maximumFractionDigits: 3}), '≤ 0,05'],
+];
+const kpiTable = rows => {
+  const by = Object.fromEntries((rows || []).map(r => [r.key, r]));
+  return `<table class="kpi"><thead><tr><th>Metrik</th><th>Nilai</th><th>Target</th><th>Sampel</th></tr></thead><tbody>${KPI.map(([k, label, f, target]) => {
+    const r = by[k], v = r?.value == null ? null : +r.value;
+    return `<tr><td>${label}</td><td class="num">${v == null ? '–' : f(v)}</td><td class="muted">${target}</td><td class="num muted">${fmt(r?.n || 0)}</td></tr>`;
+  }).join('')}</tbody></table>`;
+};
 function viewAdmin(kind, id) {
   if (!auth.admin) {
     view.innerHTML = `<div class="empty"><h1 class="w-title">Khusus admin</h1><p>Halaman ini untuk admin konten. ${auth.user ? 'Akunmu belum terdaftar sebagai admin.' : 'Masuk dengan akun yang terdaftar sebagai admin.'}</p>${auth.user ? '' : '<button class="btn pri" data-open-acct>Masuk</button>'}</div>`;
@@ -2026,8 +2124,10 @@ function viewAdmin(kind, id) {
       <div class="adm-list">${CATS.map(c => L.filter(l => l.cat === c.id).map(l => `<div class="adm-row" style="--cat:var(${c.v})"><span class="card-line"></span><span><b>${esc(l.t)}</b><span class="sub"><span>${c.name}</span><span class="lvl">${lvIcon(l.lv)}${LV[l.lv]}</span><span>${l.min} mnt</span><span>Animasi ${esc(l.dg)}</span></span></span><a class="btn sm" href="#/admin/l/${l.id}">Ubah</a><button class="btn ghost sm" data-del-l="${l.id}">Hapus</button></div>`).join('')).join('')}</div></section>
     <section><div class="adm-head"><h2>Animasi <span class="muted num">${Object.keys(DG).length}</span></h2><a class="btn pri" href="#/admin/d/new">Tambah animasi</a></div>
       <div class="adm-dg">${Object.keys(DG).map(k => `<div class="adm-card"><a class="thumb" href="#/admin/d/${k}" tabindex="-1" aria-hidden="true">${diagramSVG(k, true)}</a><div><b>${esc(k)}</b><span class="muted">${DG[k].steps.length} langkah, dipakai ${used(k)} pelajaran</span></div><div class="row"><a class="btn sm" href="#/admin/d/${k}">Ubah</a><button class="btn ghost sm" data-del-d="${k}">Hapus</button></div></div>`).join('')}</div></section>
+    <section><h2>Analitik</h2><div id="adm-kpi">${SB_ON ? '<p class="muted">Memuat metrik...</p>' : '<p class="note">Analitik aktif setelah Supabase disambungkan. Event anonim dikirim ke tabel events, dan metriknya dihitung oleh view metrics_summary.</p>'}</div></section>
     ${SB_ON ? '' : '<section><button class="btn" data-reset>Kembalikan konten bawaan</button></section>'}
     <p class="qres" id="adm-msg" aria-live="polite"></p></div>`;
+  if (SB_ON) auth.sb.from('metrics_summary').select('*').then(({data, error}) => { const el = $('#adm-kpi'); if (el) el.innerHTML = error ? `<p class="qres no">Gagal memuat metrik: ${esc(error.message)}</p>` : kpiTable(data); });
   view.onclick = async e => {
     const msg = $('#adm-msg');
     const dl = e.target.closest('[data-del-l]')?.dataset.delL, dd = e.target.closest('[data-del-d]')?.dataset.delD;
@@ -2160,8 +2260,12 @@ function route() {
 addEventListener('hashchange', route);
 
 const q = $('#q');
+let searchTimer = 0;
 q.addEventListener('input', () => {
   F.q = q.value;
+  clearTimeout(searchTimer);
+  // Hanya panjang kueri dan jumlah hasil yang dicatat, bukan teksnya.
+  if (F.q.trim()) searchTimer = setTimeout(() => track('search', {query_length: F.q.trim().length, results: L.filter(l => matches(l, false)).length}), 1000);
   if (refreshGrid) refreshGrid(); else location.hash = '#/';
 });
 addEventListener('keydown', e => {
@@ -2172,7 +2276,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-open-acct]')) return $('#acct-dlg').showModal();
   const b = e.target.closest('[data-save]'); if (!b) return;
   const id = b.dataset.save, s = store.s.saved, i = s.indexOf(id);
-  i < 0 ? s.push(id) : s.splice(i, 1); mark('s:' + id, i < 0); store.save();
+  i < 0 ? s.push(id) : s.splice(i, 1); mark('s:' + id, i < 0); store.save(); track('save_toggle', {lesson_id: id, saved: i < 0});
   $$(`[data-save="${id}"]`).forEach(x => { x.setAttribute('aria-pressed', i < 0); const t = $('.lbl', x); if (t) t.textContent = i < 0 ? 'Disimpan' : 'Simpan'; });
   if (location.hash === '#/saved') refreshGrid?.();
 });
@@ -2185,6 +2289,7 @@ $('#theme').onclick = () => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => dispatchEvent(new Event('themechange')));
 applyTheme(store.s.theme);
 renderAccount();
+track('session_start', {route: routeName()});
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker:', err));
 (SB_ON ? initAuth().catch(err => console.error('Supabase:', err)) : Promise.resolve()).then(route);
 </script>
