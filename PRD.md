@@ -73,7 +73,7 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Peta belajar (jalur metro) | ✓ | Jalur kustom ("Persiapan interview 2 minggu") | |
 | Pemutar animasi per langkah | ✓ | Narasi audio TTS opsional | Mode presentasi layar penuh |
 | Penjelasan, poin kunci, transkrip langkah | ✓ | | |
-| Kuis per pelajaran | ✓ (1 soal) | 3–5 soal, pengulangan berjarak | |
+| Kuis per pelajaran | ✓ (1 soal) | 3–5 soal (sudah di prototype, dengan penjelasan per soal), pengulangan berjarak | |
 | Catatan pribadi bertimestamp | ✓ (lokal) | Sinkron akun | Ekspor Markdown |
 | Simpan, progres, riwayat | ✓ (lokal) | Sinkron akun | |
 | Akun dan login | | ✓ (Google, GitHub, magic link email) — sudah di prototype | |
