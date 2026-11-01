@@ -224,6 +224,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 
 /* Playground */
 .pg-bar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin:18px 0 16px}
+#pg-chal{width:100%;max-width:100%}
 #pg-share-msg{flex-basis:100%;font-size:13.5px}#pg-share-msg:empty{display:none}
 .fld{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
 .fld.rps{flex:1 1 300px;max-width:440px}
@@ -1018,7 +1019,36 @@ const CHALLENGES = [
   {name: 'Tahan 3.000 rps', d: 'Toko online kecil sedang promo. Layani 3.000 request per detik dengan sedikit kegagalan.', rps: 3000, err: .01, lat: 150, cost: Infinity},
   {name: '10.000 rps dengan anggaran tipis', d: 'Sebagian besar trafik adalah halaman produk yang sama untuk semua user. Anggaran maksimal $800 per bulan.', rps: 10000, err: .01, lat: 100, cost: 800},
   {name: 'Flash sale 25.000 rps', d: 'Terima semua pesanan tanpa menolak satu pun. Pemrosesan boleh tertunda.', rps: 25000, err: .001, lat: 60, cost: Infinity},
+  {name: 'Replika baca tanpa cache', d: 'Laporan keuangan harus selalu terbaru, jadi cache dilarang. Sebar baca ke beberapa database seperti replika.', rps: 4000, err: .01, lat: 150, cost: 1200, no: ['cache', 'cdn']},
+  {name: 'Satu database saja', d: 'Tim hanya sanggup mengelola satu database. Layani 8.000 rps tanpa membuatnya kewalahan.', rps: 8000, err: .01, lat: 120, cost: 1500, max: {db: 1}},
+  {name: 'Data personal', d: 'Setiap user melihat dasbor miliknya sendiri, jadi cache jarang kena. Hit rate cache dan CDN paling tinggi 30%.', rps: 5000, err: .01, lat: 150, cost: 1500, hitMax: .3},
+  {name: 'Server terbatas', d: 'Kontrak hosting hanya memberi 2 server aplikasi. Layani 20.000 rps halaman publik; CDN realistis kena sekitar 90%.', rps: 20000, err: .01, lat: 100, cost: 400, max: {server: 2}, hitMax: .9},
+  {name: 'Di bawah 40 ms', d: 'Tim produk ingin halaman terasa instan. Latensi rata-rata harus di bawah 40 ms, padahal hanya 80% konten yang bisa di-cache.', rps: 3000, err: .01, lat: 40, cost: 400, hitMax: .8},
+  {name: 'Situs berita viral', d: 'Artikelmu viral dan anggaranmu hanya $120 per bulan. Hampir semua pembaca membuka artikel yang sama, tapi komentar tetap ke server.', rps: 8000, err: .01, lat: 100, cost: 120, hitMax: .9},
+  {name: 'Antrean yang tidak menumpuk', d: 'Pesanan masuk lewat queue, tapi gudang tidak mau antrean tumbuh tanpa batas. Worker harus sanggup mengimbangi.', rps: 12000, err: 0, lat: 60, cost: 1000, need: ['queue'], backlog: true},
+  {name: 'Unggah video', d: 'Video diproses di belakang layar. Terima 20.000 unggahan per detik dengan cepat, tanpa menolak.', rps: 20000, err: .001, lat: 40, cost: 400, need: ['queue']},
+  {name: 'Black Friday 50.000 rps', d: 'Puncak belanja tahunan. Halaman produk boleh di-cache, tapi stok dan keranjang tetap ke server. Hit rate paling tinggi 85%.', rps: 50000, err: .01, lat: 60, cost: 1500, hitMax: .85},
+  {name: 'Satu juta user aktif', d: 'Hitungan kasar: satu juta user aktif menghasilkan sekitar 30.000 rps di jam sibuk. Trafiknya campuran halaman publik dan data pribadi.', rps: 30000, err: .01, lat: 100, cost: 3000, hitMax: .6},
+  {name: 'Tanpa load balancer', d: 'Uji pemahamanmu: CDN dan queue juga bisa membagi trafik ke beberapa server. Layani 15.000 rps tanpa load balancer.', rps: 15000, err: .001, lat: 80, cost: 500, no: ['lb'], hitMax: .9},
+  {name: 'Final: 100.000 rps', d: 'Semua yang sudah kamu pelajari dipakai di sini: maksimal 8 server, anggaran $1.300, dan hit rate paling tinggi 90%.', rps: 100000, err: .001, lat: 50, cost: 1300, max: {server: 8}, hitMax: .9},
 ];
+// Baris ceklis tantangan: [teks, lulus?]. Batasan tambahan bersifat opsional per tantangan.
+function checkChallenge(C, g, sim, rps) {
+  const count = t => g.nodes.filter(n => n.type === t).length, name = t => TYPES[t].name.toLowerCase();
+  const rows = [[`Trafik minimal ${fmt(C.rps)} rps`, rps >= C.rps], [C.err ? `Ditolak paling banyak ${pct(C.err)}` : 'Tidak ada request yang ditolak', sim.err <= C.err + 1e-9], [`Latensi paling lama ${C.lat} ms`, sim.lat <= C.lat]];
+  if (isFinite(C.cost)) rows.push([`Biaya paling mahal $${fmt(C.cost)}/bln`, sim.cost <= C.cost]);
+  for (const [t, n] of Object.entries(C.max || {})) rows.push([`Paling banyak ${n} ${name(t)}`, count(t) <= n]);
+  (C.need || []).forEach(t => rows.push([`Memakai ${name(t)}`, count(t) > 0]));
+  (C.no || []).forEach(t => rows.push([`Tanpa ${name(t)}`, count(t) === 0]));
+  if (C.hitMax != null) rows.push([`Hit rate cache dan CDN paling tinggi ${pct(C.hitMax)}`, g.nodes.every(n => n.hit == null || n.hit <= C.hitMax + 1e-9)]);
+  if (C.backlog) rows.push(['Antrean tidak menumpuk', sim.backlog < 1]);
+  return rows;
+}
+(function challengeSelfTest() {
+  const g = {nodes: [{id: 'a', type: 'client', cap: Infinity}, {id: 'b', type: 'cdn', cap: 100000, hit: .95}, {id: 'c', type: 'server', cap: 1500}], edges: [['a', 'b'], ['b', 'c']]};
+  const rows = checkChallenge(CHALLENGES[13], g, simulate(g, 15000), 15000);
+  console.assert(rows.find(r => r[0].startsWith('Tanpa'))[1] && !rows.find(r => r[0].startsWith('Hit rate'))[1], 'tantangan: batasan tambahan dicek');
+})();
 
 // Desain playground dikodekan ke URL (base64url JSON) agar bisa dibagikan tanpa server.
 function encodeDesign(g, rps) {
@@ -1066,7 +1096,7 @@ function viewPlayground(presetId, shared) {
       <div class="cv-wrap"><canvas id="pg-cv" aria-label="Kanvas arsitektur. Panel di kanan bisa dipakai untuk memilih dan menyambungkan komponen dengan keyboard."></canvas><p class="cv-hint" id="pg-hint"></p></div>
       <div class="side">
         <section class="panel" aria-labelledby="h-res"><h2 id="h-res">Hasil</h2><div class="metrics" id="pg-metrics" aria-live="polite"></div><p class="advice" id="pg-advice"></p></section>
-        <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan</h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul></section>
+        <section class="panel" aria-labelledby="h-chal"><h2 id="h-chal">Tantangan <span class="muted num" id="pg-chal-n"></span></h2><select id="pg-chal" aria-label="Pilih tantangan">${CHALLENGES.map((c, i) => `<option value="${i}">${c.name}${store.s.chal[i] ? ' (selesai)' : ''}</option>`).join('')}</select><p class="muted" id="pg-chal-d" style="margin-top:8px;font-size:13.5px"></p><ul class="checks" id="pg-checks"></ul></section>
         <section class="panel" id="pg-insp" aria-label="Pengaturan komponen"></section>
       </div>
     </div></div>`;
@@ -1097,10 +1127,10 @@ function viewPlayground(presetId, shared) {
     ].map(([k, v, bad]) => `<div class="metric${bad ? ' bad' : ''}"><b class="num">${v}</b><span>${k}</span></div>`).join('');
     $('#pg-advice').textContent = advice();
     $('#pg-chal-d').textContent = C.d;
-    const rows = [[`Trafik minimal ${fmt(C.rps)} rps`, rps >= C.rps], [`Ditolak paling banyak ${pct(C.err)}`, sim.err <= C.err], [`Latensi paling lama ${C.lat} ms`, sim.lat <= C.lat]];
-    if (isFinite(C.cost)) rows.push([`Biaya paling mahal $${fmt(C.cost)}/bln`, sim.cost <= C.cost]);
+    const rows = checkChallenge(C, g, sim, rps);
     const win = rows.every(r => r[1]);
-    if (win && !store.s.chal[chal]) { store.s.chal[chal] = true; store.save(); }
+    if (win && !store.s.chal[chal]) { store.s.chal[chal] = true; store.save(); $('#pg-chal').options[chal].text = `${C.name} (selesai)`; }
+    $('#pg-chal-n').textContent = `${CHALLENGES.filter((_, i) => store.s.chal[i]).length} dari ${CHALLENGES.length} selesai`;
     $('#pg-checks').innerHTML = rows.map(([k, ok]) => `<li class="${ok ? 'pass' : 'fail'}">${ico(ok ? I.check : I.cross)}<span>${k}</span></li>`).join('') + (win ? '<li class="win">Tantangan selesai. Coba tantangan berikutnya.</li>' : '');
     kick();
   }
