@@ -204,7 +204,8 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .qres{font-weight:700;min-height:1.6em}
 .qres.ok{color:var(--ok)} .qres.no{color:var(--bad)}
 .quiz .btn{justify-self:start}
-.quiz fieldset{border:0;padding:0;margin:0}.quiz legend .num{color:var(--ink-2);margin-right:4px}
+.quiz fieldset{border:0;padding:0;margin:0}.q-from{display:inline-block;font-size:13px;color:var(--ink-2);margin:-4px 0 10px}
+.review .quiz{max-width:62ch}.quiz legend .num{color:var(--ink-2);margin-right:4px}
 .qexp{font-size:14px;margin-top:2px}.qexp:empty{display:none}
 .quiz fieldset.ok .qexp{color:var(--ok)}.quiz fieldset.no .qexp{color:var(--bad)}
 .quiz fieldset.no .opt:has(input:checked){border-color:var(--bad)}.quiz fieldset.ok .opt:has(input:checked){border-color:var(--ok)}
@@ -423,9 +424,9 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement, view = $('#view');
 
 const store = (() => {
-  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, theme: null};
+  const s = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}, theme: null};
   try { Object.assign(s, JSON.parse(localStorage.getItem('alur') || '{}')); } catch {}
-  s.edits ||= {}; // data lama belum punya catatan hapus/tambah
+  s.edits ||= {}; s.srs ||= {}; // data lama belum punya field ini
   return {s, onSave: null, save() { try { localStorage.setItem('alur', JSON.stringify(s)); } catch {} this.onSave?.(); }};
 })();
 
@@ -581,6 +582,36 @@ const L = [
 
 // Kuis pelajaran (3–5 soal); pelajaran tanpa kuis sendiri memakai satu soal dari animasinya.
 const quizOf = l => l.qz?.length ? l.qz : [DG[l.dg].quiz];
+// Pengulangan berjarak (kotak Leitner): benar naik kotak dengan jeda 3, 7, 16, 35 hari; salah kembali ke kotak 0 (besok).
+const SRS_DAYS = [1, 3, 7, 16, 35], DAY = 864e5;
+const nextSrs = (cur, ok, now) => { const b = ok ? Math.min((cur?.b ?? 0) + 1, SRS_DAYS.length - 1) : 0; return {b, due: now + SRS_DAYS[b] * DAY, t: now}; };
+// Jawaban benar sebelum jatuh tempo tidak menaikkan kotak, agar mengulang cepat-cepat tidak memperpanjang jeda.
+function recordSrs(key, ok, now = Date.now()) {
+  const cur = store.s.srs[key];
+  if (!ok || !cur || cur.due <= now) store.s.srs[key] = nextSrs(cur, ok, now);
+}
+const srsItems = () => Object.entries(store.s.srs).flatMap(([key, v]) => {
+  const [id, i] = key.split(':'), l = L.find(x => x.id === id), q = l && quizOf(l)[+i];
+  return q ? [{key, l, q, due: v.due}] : []; // soal yang sudah dihapus admin dilewati
+});
+const dueQuestions = (now = Date.now()) => srsItems().filter(x => x.due <= now).sort((a, b) => a.due - b.due);
+(function srsSelfTest() {
+  const a = nextSrs(undefined, true, 0), b = nextSrs(a, false, 0), c = nextSrs({b: 4}, true, 0);
+  console.assert(a.b === 1 && a.due === 3 * DAY && b.b === 0 && b.due === DAY && c.b === 4 && c.due === 35 * DAY, 'srs: jadwal kotak Leitner');
+})();
+const quizFields = items => items.map(({q, sub}, i) => `<fieldset data-q="${i}"><legend><span class="num">${i + 1}.</span> ${esc(q.q)}</legend>${sub || ''}${shuffle(q.o.map((_, j) => j)).map(j => `<label class="opt"><input type="radio" name="q${i}" value="${j}"><span>${esc(q.o[j])}</span></label>`).join('')}<p class="qexp" aria-live="polite"></p></fieldset>`).join('');
+// Menilai form kuis: menandai tiap soal dan menampilkan penjelasannya. Mengembalikan null jika masih ada soal kosong.
+function gradeQuiz(form, qs) {
+  const f = new FormData(form), ans = qs.map((_, i) => f.get('q' + i)), r = $('.qres', form);
+  const left = ans.filter(v => v === null).length;
+  if (left) { r.className = 'qres'; r.textContent = `Masih ada ${left} soal yang belum dijawab.`; return null; }
+  return qs.map((q, i) => {
+    const ok = +ans[i] === q.a, fs = $(`[data-q="${i}"]`, form);
+    fs.className = ok ? 'ok' : 'no';
+    $('.qexp', fs).textContent = (ok ? 'Benar. ' : 'Belum tepat. ') + (q.e || (ok ? '' : 'Tonton ulang langkah animasinya.'));
+    return ok;
+  });
+}
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 /* ---------- Shared renderers ---------- */
@@ -682,11 +713,11 @@ function matches(l, saved) {
     && (!q || fuzzy(q, `${l.t} ${l.d} ${CAT[l.cat].name} ${l.p.join(' ')}`));
 }
 function viewHome(saved) {
-  const done = L.filter(l => prog(l.id) >= 1).length;
+  const done = L.filter(l => prog(l.id) >= 1).length, due = saved ? 0 : dueQuestions().length;
   const legend = `<p class="legend">${LV.map((n, i) => `<span>${lvIcon(i)}${n}</span>`).join('')}<span><svg class="lv" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="currentColor"/></svg>Terisi berarti selesai</span></p>`;
   view.innerHTML = (saved
     ? `<header class="page-head"><h1>Disimpan</h1><p>Pelajaran yang kamu tandai untuk ditonton nanti.</p></header>`
-    : `<section class="hero"><div class="hero-head"><div><h1>Peta belajar system design</h1><p>Setiap garis adalah satu topik, setiap stasiun satu pelajaran animasi. Mulai dari kiri, atau turun di stasiun mana saja. Kamu sudah menyelesaikan ${done} dari ${L.length} pelajaran.</p></div>${legend}</div><div class="map-wrap">${mapSVG()}</div></section>`)
+    : `<section class="hero"><div class="hero-head"><div><h1>Peta belajar system design</h1><p>Setiap garis adalah satu topik, setiap stasiun satu pelajaran animasi. Mulai dari kiri, atau turun di stasiun mana saja. Kamu sudah menyelesaikan ${done} dari ${L.length} pelajaran.${due ? ` <a href="#/ulang">${due} soal kuis siap diulang hari ini.</a>` : ''}</p></div>${legend}</div><div class="map-wrap">${mapSVG()}</div></section>`)
     + `<div class="filters"><div class="chips" role="group" aria-label="Kategori"><button class="chip" data-cat="all">Semua</button>${CATS.map(c => `<button class="chip" data-line data-cat="${c.id}" style="--cat:var(${c.v})">${c.name}</button>`).join('')}</div>
        <div class="seg-ctl" role="group" aria-label="Tingkat kesulitan"><button data-lv="-1">Semua tingkat</button>${LV.map((n, i) => `<button data-lv="${i}">${lvIcon(i)}${n}</button>`).join('')}</div></div>
        <p class="count" aria-live="polite"></p><div class="grid"></div>`;
@@ -860,8 +891,8 @@ function viewLesson(id) {
       <ol class="steps">${D.steps.map((s, i) => `<li><button data-step="${i}"><span class="num">${mmss(i * STEP)}</span><b>${esc(s.t)}</b><span>${esc(s.d)}</span></button></li>`).join('')}</ol>
     </div>
     <div role="tabpanel" id="p-b" aria-labelledby="t-b" hidden>
-      <form class="quiz"><p class="muted">${QS.length} soal. Jawab semuanya lalu periksa. Kuis lulus jika semua jawaban benar.${store.s.quiz[l.id] ? ' Kamu sudah pernah lulus kuis ini.' : ''}</p>
-      ${QS.map((q, i) => `<fieldset data-q="${i}"><legend><span class="num">${i + 1}.</span> ${esc(q.q)}</legend>${shuffle(q.o.map((_, j) => j)).map(j => `<label class="opt"><input type="radio" name="q${i}" value="${j}"><span>${esc(q.o[j])}</span></label>`).join('')}<p class="qexp" aria-live="polite"></p></fieldset>`).join('')}
+      <form class="quiz"><p class="muted">${QS.length} soal. Jawab semuanya lalu periksa. Kuis lulus jika semua jawaban benar.${store.s.quiz[l.id] ? ' Kamu sudah pernah lulus kuis ini.' : ''} Soal yang sudah kamu jawab akan muncul lagi di <a href="#/ulang">Ulang soal</a> dengan jeda makin panjang.</p>
+      ${quizFields(QS.map(q => ({q})))}
       <button class="btn pri">Periksa jawaban</button><p class="qres" aria-live="polite"></p></form>
     </div>
     <div role="tabpanel" id="p-c" aria-labelledby="t-c" hidden>
@@ -894,19 +925,15 @@ function viewLesson(id) {
     const t = tabs[(i + d + tabs.length) % tabs.length]; select(t); t.focus();
   };
 
+  let scheduled = false; // hanya percobaan pertama yang masuk jadwal ulang; percobaan berikutnya sudah melihat penjelasan
   $('.quiz', view).onsubmit = e => {
     e.preventDefault();
-    const f = new FormData(e.target), ans = QS.map((_, i) => f.get('q' + i)), r = $('.qres', view);
-    const left = ans.filter(v => v === null).length;
-    if (left) { r.className = 'qres'; r.textContent = `Masih ada ${left} soal yang belum dijawab.`; return; }
-    let right = 0;
-    QS.forEach((q, i) => {
-      const ok = +ans[i] === q.a, fs = $(`[data-q="${i}"]`, e.target);
-      right += ok; fs.className = ok ? 'ok' : 'no';
-      $('.qexp', fs).textContent = (ok ? 'Benar. ' : 'Belum tepat. ') + (q.e || (ok ? '' : 'Tonton ulang langkah animasinya.'));
-    });
-    const pass = right === QS.length;
-    if (pass && !store.s.quiz[l.id]) { store.s.quiz[l.id] = true; store.save(); }
+    const res = gradeQuiz(e.target, QS), r = $('.qres', view);
+    if (!res) return;
+    const right = res.filter(Boolean).length, pass = right === QS.length;
+    if (!scheduled) { scheduled = true; res.forEach((ok, i) => recordSrs(`${l.id}:${i}`, ok)); }
+    if (pass) store.s.quiz[l.id] = true;
+    store.save();
     r.className = 'qres ' + (pass ? 'ok' : 'no');
     r.textContent = pass ? `Semua ${right} jawaban benar. Kuis lulus dan tersimpan di progresmu.` : `${right} dari ${QS.length} benar. Baca penjelasannya, ubah jawaban yang salah, lalu periksa lagi.`;
   };
@@ -1636,6 +1663,37 @@ function viewLab(kind) {
   return (k === 'sql' ? viewLabSql : viewLabRedis)($('#lab-main'));
 }
 
+/* ---------- Ulang soal ---------- */
+function viewReview() {
+  const due = dueQuestions(), items = due.slice(0, 10);
+  if (!items.length) {
+    const next = Math.min(...srsItems().map(x => x.due));
+    view.innerHTML = `<div class="empty"><h1 class="w-title">Tidak ada soal untuk diulang</h1><p>${isFinite(next)
+      ? `Soal berikutnya muncul ${new Date(next).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long'})}.`
+      : 'Kerjakan kuis di halaman pelajaran. Soal yang sudah kamu jawab akan muncul lagi di sini dengan jeda makin panjang.'}</p><a class="btn" href="#/">Jelajahi pelajaran</a></div>`;
+    return null;
+  }
+  view.innerHTML = `<div class="review"><header class="page-head"><h1>Ulang soal</h1><p>Soal kuis yang sudah pernah kamu jawab muncul lagi saat mulai terlupa. Jawaban benar membuat jedanya makin panjang (3, 7, 16, lalu 35 hari), jawaban salah muncul lagi besok.${due.length > items.length ? ` Ada ${due.length} soal jatuh tempo; ini ${items.length} yang paling lama menunggu.` : ''}</p></header>
+    <form class="quiz">${quizFields(items.map(x => ({q: x.q, sub: `<a class="q-from" href="#/l/${x.l.id}">${esc(x.l.t)}</a>`})))}
+    <button class="btn pri">Periksa jawaban</button><p class="qres" aria-live="polite"></p></form></div>`;
+  const form = $('.quiz', view);
+  let graded = false;
+  form.onsubmit = e => {
+    e.preventDefault();
+    if (graded) return route();
+    const res = gradeQuiz(form, items.map(x => x.q)), r = $('.qres', form);
+    if (!res) return;
+    graded = true;
+    res.forEach((ok, i) => recordSrs(items[i].key, ok));
+    store.save();
+    const right = res.filter(Boolean).length, left = dueQuestions().length;
+    r.className = 'qres ' + (right === res.length ? 'ok' : 'no');
+    r.textContent = `${right} dari ${res.length} benar. Yang benar muncul lagi beberapa hari lagi, yang salah besok.`;
+    $('button.pri', form).textContent = left ? `Lanjut ke ${Math.min(left, 10)} soal berikutnya` : 'Selesai';
+  };
+  return null;
+}
+
 /* ---------- Design system ---------- */
 function viewDesign() {
   const sw = (v, name, use) => `<div class="sw"><i style="--v:var(${v})"></i><div><b>${name}</b><code data-var="${v}"></code><br><span class="muted" style="font-size:12.5px">${use}</span></div></div>`;
@@ -1814,30 +1872,31 @@ async function setUser(u) {
 }
 
 /* ---------- Sinkron progres ---------- */
-const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits'];
+const SYNC_KEYS = ['progress', 'saved', 'notes', 'quiz', 'chal', 'edits', 'srs'];
 // Jejak kapan simpanan ('s:id') atau catatan ('n:pelajaran:id') terakhir ditambah/dihapus, agar hapusan ikut tersinkron.
 const mark = (k, on) => { store.s.edits[k] = {t: Date.now(), on}; };
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 // Data dari server dibersihkan per field; nilai yang bentuknya salah dibuang, bukan merusak state lokal.
 function cleanState(d) {
-  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}};
+  const o = {progress: {}, saved: [], notes: {}, quiz: {}, chal: {}, edits: {}, srs: {}};
   if (!isObj(d)) return o;
   if (isObj(d.progress)) for (const [k, v] of Object.entries(d.progress)) if (typeof v === 'number' && v >= 0 && v <= 1) o.progress[k] = v;
   if (Array.isArray(d.saved)) o.saved = d.saved.filter(x => typeof x === 'string');
   if (isObj(d.notes)) for (const [k, list] of Object.entries(d.notes)) if (Array.isArray(list)) o.notes[k] = list.filter(n => isObj(n) && typeof n.id === 'string' && typeof n.t === 'number' && typeof n.text === 'string');
   for (const key of ['quiz', 'chal']) if (isObj(d[key])) for (const [k, v] of Object.entries(d[key])) if (typeof v === 'boolean') o[key][k] = v;
   if (isObj(d.edits)) for (const [k, v] of Object.entries(d.edits)) if (isObj(v) && typeof v.t === 'number' && typeof v.on === 'boolean') o.edits[k] = {t: v.t, on: v.on};
+  if (isObj(d.srs)) for (const [k, v] of Object.entries(d.srs)) if (isObj(v) && Number.isInteger(v.b) && v.b >= 0 && v.b < SRS_DAYS.length && typeof v.due === 'number' && typeof v.t === 'number') o.srs[k] = {b: v.b, due: v.due, t: v.t};
   return o;
 }
 // Gabungan dua perangkat: progres tertinggi, simpanan dan catatan digabung, kuis/tantangan benar jika benar di salah satunya.
 // Simpanan/catatan yang perubahan terakhirnya berupa hapus dibuang dari hasil gabungan.
 // shortcut: memakai jam perangkat dan jejak edits tidak pernah dipangkas; cukup selama jumlahnya ratusan, bukan jutaan.
 function mergeState(a, b) {
-  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}};
+  const m = {progress: {...a.progress}, saved: [...new Set([...a.saved, ...b.saved])], notes: {...a.notes}, quiz: {...a.quiz}, chal: {...a.chal}, edits: {...a.edits}, srs: {...a.srs}};
   for (const [k, v] of Object.entries(b.progress)) m.progress[k] = Math.max(m.progress[k] || 0, v);
   for (const [k, list] of Object.entries(b.notes)) { const ids = new Set((m.notes[k] || []).map(n => n.id)); m.notes[k] = [...(m.notes[k] || []), ...list.filter(n => !ids.has(n.id))]; }
   for (const key of ['quiz', 'chal']) for (const [k, v] of Object.entries(b[key])) m[key][k] = m[key][k] || v;
-  for (const [k, v] of Object.entries(b.edits)) if (!m.edits[k] || v.t > m.edits[k].t) m.edits[k] = v;
+  for (const key of ['edits', 'srs']) for (const [k, v] of Object.entries(b[key])) if (!m[key][k] || v.t > m[key][k].t) m[key][k] = v; // yang terakhir diubah menang
   const gone = k => m.edits[k]?.on === false;
   m.saved = m.saved.filter(id => !gone('s:' + id));
   for (const k in m.notes) m.notes[k] = m.notes[k].filter(n => !gone(`n:${k}:${n.id}`));
@@ -1855,6 +1914,8 @@ function mergeState(a, b) {
   const B = cleanState({saved: [], notes: {f1: []}, edits: {'s:f1': {t: 10, on: false}, 's:f2': {t: 20, on: false}, 'n:f1:x': {t: 10, on: false}, bad: {t: 'x'}}});
   const M = mergeState(A, B);
   console.assert(M.saved.join() === 'f2' && M.notes.f1.length === 0 && !('bad' in M.edits), 'sync: hapusan tersinkron, simpan ulang yang lebih baru menang');
+  const R = mergeState(cleanState({srs: {'f1:0': {b: 2, due: 9, t: 5}, 'f1:1': {b: 1, due: 3, t: 1}}}), cleanState({srs: {'f1:0': {b: 0, due: 7, t: 2}, 'f1:1': {b: 0, due: 4, t: 3}, x: {b: 9, due: 1, t: 1}}}));
+  console.assert(R.srs['f1:0'].b === 2 && R.srs['f1:1'].b === 0 && !('x' in R.srs), 'sync: jadwal ulang terakhir menang, data rusak dibuang');
 })();
 
 const sync = {
@@ -2063,6 +2124,7 @@ function route() {
   else if (h === '#/design') { cleanup = viewDesign(); section = 'design'; }
   else if ((m = h.match(/^#\/admin(?:\/([ld])\/(\w+))?$/))) { cleanup = viewAdmin(m[1], m[2]); section = 'admin'; }
   else if (h === '#/saved') { cleanup = viewHome(true); section = 'saved'; }
+  else if (h === '#/ulang') cleanup = viewReview();
   else cleanup = viewHome(false);
   $$('.rail a').forEach(a => a.dataset.r === section ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
   scrollTo(0, 0);

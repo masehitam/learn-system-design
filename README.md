@@ -41,7 +41,7 @@ Untuk mengaktifkan login dan admin sungguhan (paket gratis Supabase cukup):
 
 Setelah login, progres, simpanan, catatan, hasil kuis, dan tantangan disinkronkan ke akun. Saat login pertama, data di perangkat digabung dengan data di akun: progres diambil yang tertinggi, sisanya digabung. Simpanan atau catatan yang dihapus di satu perangkat ikut terhapus di perangkat lain, karena aplikasi mencatat waktu setiap tambah dan hapus lalu memakai perubahan yang paling akhir.
 
-Setiap pelajaran punya kuis 3–5 soal yang bisa diubah di menu Admin dengan format teks sederhana. Pelajaran tanpa kuis sendiri memakai satu soal dari animasinya.
+Setiap pelajaran punya kuis 3–5 soal yang bisa diubah di menu Admin dengan format teks sederhana. Pelajaran tanpa kuis sendiri memakai satu soal dari animasinya. Soal yang sudah dijawab muncul lagi di halaman Ulang soal (`#/ulang`) dengan jeda makin panjang. Jawaban benar membuat jedanya 3, 7, 16, lalu 35 hari, dan jawaban salah muncul lagi besok.
 
 Simpan pertama dari menu Admin otomatis menyalin konten bawaan ke database. Setelah itu, database menjadi sumber konten untuk semua pengunjung.
 
