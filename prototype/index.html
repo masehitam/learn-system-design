@@ -741,7 +741,7 @@ function viewHome(saved) {
   const done = L.filter(l => prog(l.id) >= 1).length, due = saved ? 0 : dueQuestions().length;
   const legend = `<p class="legend">${LV.map((n, i) => `<span>${lvIcon(i)}${n}</span>`).join('')}<span><svg class="lv" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="currentColor"/></svg>Terisi berarti selesai</span></p>`;
   view.innerHTML = (saved
-    ? `<header class="page-head"><h1>Disimpan</h1><p>Pelajaran yang kamu tandai untuk ditonton nanti.</p></header>`
+    ? `<header class="page-head"><h1>Disimpan</h1><p>Pelajaran yang kamu tandai untuk ditonton nanti.</p>${notesMarkdown(L.map(l => l.id)) ? '<button class="btn sm" data-export>Unduh semua catatan (.md)</button>' : ''}</header>`
     : `<section class="hero"><div class="hero-head"><div><h1>Peta belajar system design</h1><p>Setiap garis adalah satu topik, setiap stasiun satu pelajaran animasi. Mulai dari kiri, atau turun di stasiun mana saja. Kamu sudah menyelesaikan ${done} dari ${L.length} pelajaran.${due ? ` <a href="#/ulang">${due} soal kuis siap diulang hari ini.</a>` : ''}</p></div>${legend}</div><div class="map-wrap">${mapSVG()}</div></section>`)
     + `<div class="filters"><div class="chips" role="group" aria-label="Kategori"><button class="chip" data-cat="all">Semua</button>${CATS.map(c => `<button class="chip" data-line data-cat="${c.id}" style="--cat:var(${c.v})">${c.name}</button>`).join('')}</div>
        <div class="seg-ctl" role="group" aria-label="Tingkat kesulitan"><button data-lv="-1">Semua tingkat</button>${LV.map((n, i) => `<button data-lv="${i}">${lvIcon(i)}${n}</button>`).join('')}</div></div>
@@ -766,6 +766,7 @@ function viewHome(saved) {
     const c = e.target.closest('[data-cat]'), v = e.target.closest('[data-lv]');
     if (c) F.cat = c.dataset.cat; else if (v) F.lv = +v.dataset.lv;
     else if (e.target.closest('[data-clear]')) { F.q = ''; F.cat = 'all'; F.lv = -1; $('#q').value = ''; }
+    else if (e.target.closest('[data-export]')) { downloadText('catatan-alur.md', notesMarkdown(L.map(l => l.id))); return; }
     else return;
     track('filter_change', {category: F.cat, level: F.lv});
     render();
@@ -883,6 +884,23 @@ function mountPlayer(el, D, onStep) {
   return {seek: i => { seek(i); play(); }, time: () => t, seekTime: ms => { t = Math.min(ms, total - 1); clearPackets(); apply(Math.floor(t / STEP)); ui(); }, destroy() { pause(); io.disconnect(); document.removeEventListener('fullscreenchange', onFs); if (isFull()) toggleFull(); }};
 }
 
+/* ---------- Ekspor catatan ---------- */
+function notesMarkdown(ids) {
+  const base = location.origin + location.pathname;
+  const parts = ids.map(id => L.find(l => l.id === id)).filter(l => l && store.s.notes[l.id]?.length).map(l => {
+    const steps = DG[l.dg].steps;
+    const items = store.s.notes[l.id].slice().sort((a, b) => a.t - b.t)
+      .map(n => `- **${mmss(n.t)}**, ${steps[Math.min(steps.length - 1, Math.floor(n.t / STEP))].t}: ${n.text.replace(/\n/g, '\n  ')}`);
+    return `## ${l.t}\n\n${CAT[l.cat].name}, ${LV[l.lv]}. [Buka pelajaran](${base}#/l/${l.id})\n\n${items.join('\n')}`;
+  });
+  return parts.length ? `# Catatan Alur\n\nDiekspor ${new Date().toLocaleDateString('id-ID', {dateStyle: 'long'})}.\n\n${parts.join('\n\n')}\n` : '';
+}
+function downloadText(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/markdown;charset=utf-8'})); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 function playerHTML(D) {
   return `<section class="player" tabindex="0" aria-label="Pemutar animasi. Spasi untuk putar atau jeda, panah kiri dan kanan untuk pindah langkah, F untuk mode presentasi.">
       <div class="stage-wrap">${diagramSVG(D, false)}</div>
@@ -947,7 +965,8 @@ function viewLesson(id) {
     <div role="tabpanel" id="p-c" aria-labelledby="t-c" hidden>
       <div class="mynotes"><label for="nt">Catatan di <span class="num nt-time">0:00</span></label>
       <textarea id="nt" rows="3" placeholder="Tulis apa yang baru kamu pahami"></textarea>
-      <button class="btn pri" data-addnote>Simpan catatan</button><ul class="note-list"></ul></div>
+      <button class="btn pri" data-addnote>Simpan catatan</button><ul class="note-list"></ul>
+      <button class="btn ghost sm" data-export>Unduh catatan (.md)</button></div>
     </div>
   </div>
   <aside class="next" aria-label="Berikutnya di jalur"><h2>Berikutnya di jalur</h2><div class="next-list">${next.map(nextHTML).join('')}</div></aside></div>`;
@@ -995,6 +1014,7 @@ function viewLesson(id) {
     const list = notes().slice().sort((a, b) => a.t - b.t);
     $('.note-list', view).innerHTML = list.length ? list.map(n => `<li><button class="tlink num" data-t="${n.t}">${mmss(n.t)}</button><span>${esc(n.text)}</span><button class="btn ghost sm" data-del="${n.id}">Hapus</button></li>`).join('')
       : '<li class="muted">Belum ada catatan. Jeda animasi di langkah mana pun lalu tulis apa yang kamu pahami.</li>';
+    $('[data-export]', view).hidden = !list.length;
   }
   $('#p-c', view).onclick = e => {
     if (e.target.closest('[data-addnote]')) {
@@ -1002,6 +1022,7 @@ function viewLesson(id) {
       if (!text) { ta.focus(); return; }
       notes().push({id: Date.now().toString(36), t: Math.floor(player.time()), text}); store.save(); track('note_add', {lesson_id: l.id}); ta.value = ''; renderNotes();
     }
+    if (e.target.closest('[data-export]')) downloadText(`catatan-${l.id}.md`, notesMarkdown([l.id]));
     const tl = e.target.closest('[data-t]'); if (tl) player.seekTime(+tl.dataset.t);
     const del = e.target.closest('[data-del]');
     if (del) { store.s.notes[l.id] = notes().filter(n => n.id !== del.dataset.del); mark(`n:${l.id}:${del.dataset.del}`, false); store.save(); renderNotes(); }
