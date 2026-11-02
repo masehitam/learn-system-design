@@ -71,7 +71,7 @@ Satu keputusan inti membedakan Alur dari kursus video: **animasi adalah data, bu
 | Katalog, thumbnail hidup, kategori, kesulitan | ✓ | | |
 | Pencarian | ✓ (lokal, judul + isi) | Typo-tolerant (sudah di prototype), sinonim | Pencarian di dalam langkah animasi |
 | Peta belajar (jalur metro) | ✓ | Jalur kustom ("Persiapan interview 2 minggu") | |
-| Pemutar animasi per langkah | ✓ | Narasi audio TTS opsional | Mode presentasi layar penuh |
+| Pemutar animasi per langkah | ✓ | Narasi audio TTS opsional | Mode presentasi layar penuh (sudah di prototype: tombol atau tombol F di pemutar) |
 | Penjelasan, poin kunci, transkrip langkah | ✓ | | |
 | Kuis per pelajaran | ✓ (1 soal) | 3–5 soal (sudah di prototype, dengan penjelasan per soal), pengulangan berjarak (sudah di prototype: kotak Leitner 1/3/7/16/35 hari, halaman `#/ulang`) | |
 | Catatan pribadi bertimestamp | ✓ (lokal) | Sinkron akun | Ekspor Markdown |

@@ -166,6 +166,14 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .player{border-radius:var(--r-l);overflow:hidden;background:var(--surface)}
 .player:focus-visible{outline-offset:3px;border-radius:var(--r-l)}
 .stage-wrap{aspect-ratio:16/9}
+/* Mode presentasi: pemutar memenuhi layar; tetap jalan sebagai lapisan fixed bila Fullscreen API tidak ada (iPhone). */
+.player.pres{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;border-radius:0}
+.player.pres .stage-wrap{flex:1;min-height:0;aspect-ratio:auto;padding:2vh 2vw 0}
+.player.pres .cap{max-width:1200px;width:100%;margin:0 auto;padding:12px 24px 4px;min-height:0}
+.player.pres .cap b{font-size:clamp(20px,2.4vw,34px)}
+.player.pres .cap span{font-size:clamp(16px,1.5vw,22px);max-width:none}
+.player.pres .ctrl{max-width:1200px;width:100%;margin:0 auto;padding:8px 16px max(14px,env(safe-area-inset-bottom))}
+html.pres-on{overflow:hidden}
 .stage{display:block;width:100%;height:100%}
 .cap{display:grid;gap:2px;padding:14px 20px 4px;min-height:84px}
 .cap b{font-size:18px;line-height:1.3}
@@ -455,6 +463,8 @@ const I = {
   pause: '<path d="M7.5 5h3v14h-3zM13.5 5h3v14h-3z" fill="currentColor"/>',
   prev: '<path d="M6.5 6v12M18 6l-8 6 8 6z"/>',
   next: '<path d="M17.5 6v12M6 6l8 6-8 6z"/>',
+  expand: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
+  shrink: '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   cross: '<path d="M6 6l12 12M18 6 6 18"/>',
   dot: '<circle cx="12" cy="12" r="5"/>',
@@ -775,7 +785,7 @@ function viewHome(saved) {
 const STEP = 6000;
 function mountPlayer(el, D, onStep) {
   const steps = D.steps, total = steps.length * STEP, P = Object.fromEntries(D.nodes.map(n => [n[0], n]));
-  const layer = $('.pk-layer', el), segs = $$('.seg i', el), playBtn = $('[data-act=play]', el), timeEl = $('.time', el), spdBtn = $('.spd', el);
+  const layer = $('.pk-layer', el), segs = $$('.seg i', el), playBtn = $('[data-act=play]', el), timeEl = $('.time', el), spdBtn = $('.spd', el), fullBtn = $('[data-act=full]', el);
   const pool = Array.from({length: 40}, () => {
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('r', '3.6'); c.setAttribute('class', 'pp'); c.style.display = 'none'; layer.append(c);
@@ -830,6 +840,20 @@ function mountPlayer(el, D, onStep) {
   function play() { if (playing) return; if (t >= total) { t = 0; clearPackets(); } playing = true; last = performance.now(); raf = requestAnimationFrame(frame); setBtn(); }
   function pause() { playing = false; cancelAnimationFrame(raf); setBtn(); }
   function seek(i) { i = Math.max(0, Math.min(steps.length - 1, i)); t = i * STEP; clearPackets(); apply(i); ui(); }
+  const isFull = () => el.classList.contains('pres');
+  function setFull(on) {
+    el.classList.toggle('pres', on); document.documentElement.classList.toggle('pres-on', on);
+    fullBtn.innerHTML = ico(on ? I.shrink : I.expand); fullBtn.setAttribute('aria-label', on ? 'Keluar dari mode presentasi' : 'Mode presentasi');
+  }
+  function toggleFull() {
+    const on = !isFull();
+    if (on) el.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement === el) document.exitFullscreen().catch(() => {});
+    setFull(on); el.focus();
+  }
+  // Esc di layar penuh asli ditangani browser; kelas ikut dilepas di sini.
+  const onFs = () => { if (!document.fullscreenElement && isFull()) setFull(false); };
+  document.addEventListener('fullscreenchange', onFs);
 
   el.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -837,6 +861,7 @@ function mountPlayer(el, D, onStep) {
     else if (b.dataset.act === 'play') playing ? pause() : play();
     else if (b.dataset.act === 'prev') seek(cur - 1);
     else if (b.dataset.act === 'next') seek(cur + 1);
+    else if (b.dataset.act === 'full') toggleFull();
     else if (b.dataset.act === 'speed') { speed = {0.5: 1, 1: 1.5, 1.5: 2, 2: 0.5}[speed]; spdBtn.textContent = `${speed.toLocaleString('id-ID')}×`; }
   });
   el.addEventListener('keydown', e => {
@@ -844,6 +869,8 @@ function mountPlayer(el, D, onStep) {
     if (e.key === ' ' || e.key === 'k') { e.preventDefault(); playing ? pause() : play(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); seek(cur + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(cur - 1); }
+    else if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); toggleFull(); }
+    else if (e.key === 'Escape' && isFull()) { e.preventDefault(); toggleFull(); }
   });
   // Berhenti saat player keluar layar, lanjut lagi saat kembali.
   const io = new IntersectionObserver(([e]) => {
@@ -851,13 +878,13 @@ function mountPlayer(el, D, onStep) {
     else if (e.isIntersecting && autoPaused) { autoPaused = false; play(); }
   }, {threshold: .25});
   io.observe(el);
-  seek(0); setBtn();
+  seek(0); setBtn(); setFull(false);
   if (!reduced) play();
-  return {seek: i => { seek(i); play(); }, time: () => t, seekTime: ms => { t = Math.min(ms, total - 1); clearPackets(); apply(Math.floor(t / STEP)); ui(); }, destroy() { pause(); io.disconnect(); }};
+  return {seek: i => { seek(i); play(); }, time: () => t, seekTime: ms => { t = Math.min(ms, total - 1); clearPackets(); apply(Math.floor(t / STEP)); ui(); }, destroy() { pause(); io.disconnect(); document.removeEventListener('fullscreenchange', onFs); if (isFull()) toggleFull(); }};
 }
 
 function playerHTML(D) {
-  return `<section class="player" tabindex="0" aria-label="Pemutar animasi. Spasi untuk putar atau jeda, panah kiri dan kanan untuk pindah langkah.">
+  return `<section class="player" tabindex="0" aria-label="Pemutar animasi. Spasi untuk putar atau jeda, panah kiri dan kanan untuk pindah langkah, F untuk mode presentasi.">
       <div class="stage-wrap">${diagramSVG(D, false)}</div>
       <div class="cap" aria-live="polite"><b></b><span></span></div>
       <div class="ctrl">
@@ -867,6 +894,7 @@ function playerHTML(D) {
         <div class="tl">${D.steps.map((s, i) => `<button class="seg" data-seek="${i}" aria-label="Langkah ${i + 1}: ${esc(s.t)}"><i></i></button>`).join('')}</div>
         <span class="time num"></span>
         <button class="ib spd" data-act="speed" aria-label="Ubah kecepatan">1×</button>
+        <button class="ib" data-act="full" aria-label="Mode presentasi"></button>
       </div>
     </section>`;
 }
